@@ -1,6 +1,11 @@
 #theory from: 
 #https://raw.githubusercontent.com/MicrocontrollersAndMore/Traffic_Cone_Detection_Visual_Basic/master/presentation/Steps%20With%20Images.pdf
 
+#look at this:
+#https://stackoverflow.com/questions/54288980/controlling-opencv-convex-hull
+#https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_contours/py_contours_more_functions/py_contours_more_functions.html
+#https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html
+
 #import the necessary modules
 import freenect
 import cv2
