@@ -1,3 +1,6 @@
+#theory from: 
+#https://raw.githubusercontent.com/MicrocontrollersAndMore/Traffic_Cone_Detection_Visual_Basic/master/presentation/Steps%20With%20Images.pdf
+
 #import the necessary modules
 import freenect
 import cv2
@@ -6,7 +9,7 @@ import time
 from time import sleep
 import random as rng
 
-minimum_hull_size = 500
+minimum_hull_size = 750
 
 #https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
 #UI Stuff
@@ -105,6 +108,10 @@ def ConvexHullArea(hull):
 
     return area
 
+
+#next, find if convex hull is pointing up!
+#geomalgorithms.com/a14-_extreme_pts.html
+
 def processImg(HSVThresholdFrame):    
     kernel = np.ones((5, 5), np.uint8)
 
@@ -132,7 +139,7 @@ def processImg(HSVThresholdFrame):
     for c in processed_contours:
         hull = cv2.convexHull(c)
 
-        if ((len(hull) > 2 or len(hull) <= 5) and 
+        if ((len(hull) >= 3 or len(hull) <= 10) and 
             (ConvexHullArea(hull) > minimum_hull_size or 
             (ConvexHullArea(hull) * -1) > minimum_hull_size)):
             valid_hulls.append(hull)
@@ -164,7 +171,6 @@ if __name__ == "__main__":
         #HSV (hue, saturation, value)
         frame_HSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         frame_threshold = cv2.inRange(frame_HSV, (low_H, low_S, low_V), (high_H, high_S, high_V))
-        
         
         cv2.imshow(window_capture_name, frame)
         cv2.imshow(window_detection_name, frame_threshold)
