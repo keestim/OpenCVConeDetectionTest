@@ -14,7 +14,7 @@ import time
 from time import sleep
 import random as rng
 
-minimum_hull_size = 750
+minimum_hull_size = 250
 
 #https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
 #UI Stuff
@@ -22,10 +22,10 @@ max_value = 255
 max_value_H = 360//2
 
 low_H = 0
-low_S = 80
-low_V = 93
-high_H = 52 
-high_S = 162
+low_S = 61
+low_V = 0
+high_H = 116
+high_S = 165
 high_V = 255
 
 window_capture_name = 'Video Capture'
@@ -113,11 +113,63 @@ def ConvexHullArea(hull):
 
     return area
 
+def processHullData(hull):
+    output_vectors = []
+
+    for selected_hull in hull:
+        vector_arr = []
+
+        vector_arr.append(selected_hull[0][0])
+        vector_arr.append(selected_hull[0][1])
+
+        output_vectors.append(vector_arr)
+
+    return output_vectors
+
+def twovVectGradient(vector_a, vector_b):
+    try:
+        gradient = (vector_b[1] - vector_a[1])/(vector_b[0] - vector_a[0])
+    except:
+        gradient = 0
+    finally:
+        return gradient
+
+def hullPointingUp(hull):
+    cloned_hull = hull.copy()
+
+    y_axis_sorted = sorted(processHullData(cloned_hull), key=lambda a_entry: a_entry[1]) 
+    x_axis_sorted = sorted(processHullData(cloned_hull), key=lambda a_entry: a_entry[0]) 
+
+    left_point = x_axis_sorted[0]
+    right_point = x_axis_sorted[len(x_axis_sorted) - 1]
+
+    bottom_point = y_axis_sorted[0]
+    top_point = y_axis_sorted[len(y_axis_sorted) - 1]
+
+    left_avg_gradient = twovVectGradient(left_point, top_point)
+
+    right_avg_gradient = twovVectGradient(right_point, top_point)
+
+    #print("Left:" + str(left_point[0]) + ", " + str(left_point[1]))
+    #print("Right:" + str(right_point[0]) + ", " + str(right_point[1]))
+    #print("Top:" + str(top_point[0]) + ", " + str(top_point[1]))
+    #print(str(left_avg_gradient) + " | " + str(right_avg_gradient) + " | " + str(left_avg_gradient <= 1 and right_avg_gradient <= -1))
+
+    return (
+        (left_avg_gradient <= 1.5 and left_avg_gradient >= 0) and 
+        right_avg_gradient <= -0.5)
 
 #next, find if convex hull is pointing up!
 #geomalgorithms.com/a14-_extreme_pts.html
 
-def processImg(HSVThresholdFrame):    
+def getHullTopWidth(vector_arr):
+
+    cloned_arr = vector_arr.copy()
+
+
+def processImg(HSVThresholdFrame):  
+    #print("New Loop!")
+
     kernel = np.ones((5, 5), np.uint8)
 
     output_img = cv2.erode(HSVThresholdFrame, kernel)
@@ -146,14 +198,16 @@ def processImg(HSVThresholdFrame):
 
         if ((len(hull) >= 3 or len(hull) <= 10) and 
             (ConvexHullArea(hull) > minimum_hull_size or 
-            (ConvexHullArea(hull) * -1) > minimum_hull_size)):
+            (ConvexHullArea(hull) * -1) > minimum_hull_size)
+            and hullPointingUp(hull)):
             valid_hulls.append(hull)
 
+    #whiteFrame = 255 * np.ones((1000,1000,3), np.uint8)
+
     for hull in valid_hulls:
-        cv2.drawContours(HSVThresholdFrame, [hull], 0, (255, 0, 0), 2)
-
-
-    return HSVThresholdFrame
+        cv2.drawContours(output_img, [hull], 0, (255, 0, 255), 2)
+    
+    return output_img
     
 if __name__ == "__main__":
     cv2.namedWindow(window_capture_name)
