@@ -14,21 +14,208 @@ import time
 from time import sleep
 import random as rng
 import math
-
-minimum_hull_size = 500
+from enum import Enum 
+import threading
 
 #https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
 #UI Stuff
 max_value = 255
 max_value_H = 360//2
 
-low_H = 11
+low_H = 0
 low_S = 0
-low_V = 113
-high_H = 53
-high_S = 200
+low_V = 123
+high_H = 42
+high_S = 255
 high_V = 255
 
+class ImageViewer(Enum):
+    HSVThresholdBW = 1
+    ProcessedThreshold = 2
+    ShapesOnly = 3
+
+class KinectVideoReader(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.RGB_frame = self.get_video()
+        self.depth_frame = self.get_depth()
+
+    def run(self):
+        while True:
+            self.RGB_frame = self.get_video()
+            self.depth_frame = self.get_depth()
+
+    #function to get RGB image from kinect
+    def get_video(self):
+        array,_ = freenect.sync_get_video()
+        array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
+        return array
+    
+    #function to get depth image from kinect
+    def get_depth(self):
+        array,_ = freenect.sync_get_depth()
+        array = array.astype(np.uint8)
+        return array
+
+class HSVProcessor(threading.Thread):
+    def __init__(self, kinectVideoThread):
+        threading.Thread.__init__(self)
+        self.kinectVideoObj = kinectVideoThread
+        self.procesed_frame = None
+        self.HSV_frame = None
+        self.frame_threshold = None
+        
+    def run(self):
+        while True:
+            try:
+                self.HSV_frame = cv2.cvtColor(self.kinectVideoObj.RGB_frame, cv2.COLOR_BGR2HSV)
+                self.frame_threshold = cv2.inRange(self.HSV_frame, (low_H, low_S, low_V), (high_H, high_S, high_V))
+                self.procesed_frame = self.processImg(self.frame_threshold)
+            except:
+                print("HSVProcessor Error")
+
+    def processImg(self, input_frame):  
+        #processing steps: https://imgur.com/a/9Muz1LN
+
+        output_img = cv2.erode(input_frame, np.ones((3, 3), np.uint8))
+        output_img = cv2.dilate(output_img, np.ones((7, 7), np.uint8), iterations=2)
+        output_img = cv2.GaussianBlur(output_img, (15, 15), 0)
+        
+        return cv2.cvtColor(output_img, cv2.COLOR_GRAY2BGR)
+
+class ConeDetector(threading.Thread):
+    def __init__(self, HSVProcessor):
+        threading.Thread.__init__(self)
+        self.HSVProcessorObj = HSVProcessor
+        self.DectedConeFrame = None
+
+    def run(self):
+        while True:
+            self.DectedConeFrame = self.renderValidConvexHulls(self.HSVProcessorObj.procesed_frame)
+
+    def getConvexHulls(self, contours):
+        #https://docs.opencv.org/3.4/d7/d1d/tutorial_hull.html
+        hull_list = []
+        for i in range(len(contours)):
+            hull = cv2.convexHull(contours[i])
+            hull_list.append(hull)
+
+        return hull_list
+
+    #https://stackoverflow.com/questions/6471023/how-to-calculate-convex-hull-area-using-opencv-functions
+    def ConvexHullArea(self, hull):
+        area = 0
+        for i in  range(len(hull) - 1):
+            next_i = (i+1)%(len(hull))
+            dX   = hull[next_i][0][0] - hull[i][0][0]
+            avgY = (hull[next_i][0][1] + hull[i][0][1])/2
+            area += dX * avgY;  # this is the integration step.
+
+        return area
+
+    def processHullData(self, hull):
+        #transform the openCV generated array, to make it easier to interface with
+        output_vectors = []
+
+        for selected_hull in hull:
+            vector_arr = []
+
+            vector_arr.append(selected_hull[0][0])
+            vector_arr.append(selected_hull[0][1])
+
+            output_vectors.append(vector_arr)
+
+        return output_vectors
+
+    def getExtremePoints(self, hull):
+        left_most = tuple(hull[hull[:,:,0].argmin()][0])
+        right_most = tuple(hull[hull[:,:,0].argmax()][0])
+        top_most = tuple(hull[hull[:,:,1].argmin()][0])
+        bottom_most = tuple(hull[hull[:,:,1].argmax()][0])
+
+        return {'left': left_most, 'right': right_most, 'top': top_most, 'bottom': bottom_most}
+
+    def renderValidConvexHulls(self, ProcessedFrame):
+        whiteFrame = 255 * np.ones((1000,1000,3), np.uint8)
+
+        #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
+
+        #get edges and then contours from the processed frame
+        edge = cv2.Canny(ProcessedFrame, 30, 200)
+        contours, h = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+        processed_contours = []
+
+        #select contours that are greater than 100
+        #this removes any irrelevant data
+        for contour in contours:
+            if cv2.contourArea(contour) >= 100:
+                processed_contours.append(contour) 
+
+        valid_hulls = []
+
+        for c in processed_contours:
+            hull = cv2.convexHull(c)
+
+            #A valid hull must have between 3 and 10 edges
+            if ((len(hull) >= 3 or len(hull) <= 10) and 
+                (self.ConvexHullArea(hull) > minimum_hull_size or 
+                (self.ConvexHullArea(hull) * -1) > minimum_hull_size)):
+                    rect = cv2.minAreaRect(hull)
+                    (x, y), (width, height), angle = rect
+
+                    aspect_ratio = float(width) / height
+
+                    box = cv2.boxPoints(rect)
+                    box = np.int0(box)
+
+                    #draws the rotates rectangle
+                    cv2.drawContours(ProcessedFrame, [box], 0, (255, 0, 255), 2)
+
+                    #if greater than 1, then width is greater than height
+                    #we expect cones to be standing upright, hence being taller than they are wide
+                    if aspect_ratio <= 1:
+                        extreme_points = self.getExtremePoints(hull)
+
+                        #gets the average of the top and bottom points
+                        LRAvg = [
+                            (extreme_points["left"][0] + extreme_points["right"][0])/2, 
+                            (extreme_points["left"][1] + extreme_points["right"][1])/2]
+
+                        #Essentially the height, gets the average of the top and bottom points
+                        TBDistance = math.dist(extreme_points["bottom"], extreme_points["top"])
+
+                        distance_from_LR_avg = []
+
+                        distance_from_LR_avg.append(math.dist(LRAvg, extreme_points["top"]))
+                        distance_from_LR_avg.append(math.dist(LRAvg, extreme_points["bottom"]))
+
+                        #either the length from the top to the LR average 
+                        #or the lenght from the bottom to the LR average
+                        #must be less than 35% of the total height
+                        valid_ratio = list(filter(lambda x: x < TBDistance * 0.35, distance_from_LR_avg))
+
+                        #width and height are from rotated rectange above
+                        if (len(valid_ratio) > 0) and (self.ConvexHullArea(hull) <= (width * height) * 0.5):
+                            valid_hulls.append(hull)
+
+        for hull in valid_hulls:
+            cv2.drawContours(ProcessedFrame, [hull], 0, (255, 0, 255), 2)
+
+            #https://stackoverflow.com/questions/66953166/how-to-find-the-direction-of-triangles-in-an-image-using-opencv
+            #https://stackoverflow.com/questions/49799057/how-to-draw-a-point-in-an-image-using-given-co-ordinate-with-python-opencv
+            #https://stackoverflow.com/questions/16615662/how-to-write-text-on-a-image-in-windows-using-python-opencv2
+
+            #https://customers.pyimagesearch.com/lesson-sample-advanced-contour-properties/
+            #https://docs.opencv.org/3.4/d1/d32/tutorial_py_contour_properties.html
+
+        return ProcessedFrame
+
+
+minimum_hull_size = 500
+
+#UI Stuff
 window_capture_name = 'Video Capture'
 window_detection_name = 'Object Detection'
 window_processedimg_name = 'Processed Capture'
@@ -81,188 +268,6 @@ def on_high_V_thresh_trackbar(val):
     high_V = val
     high_V = max(high_V, low_V+1)
     cv2.setTrackbarPos(high_V_name, window_detection_name, high_V)
-
-#function to get RGB image from kinect
-def get_video():
-    array,_ = freenect.sync_get_video()
-    array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
-    return array
- 
-#function to get depth image from kinect
-def get_depth():
-    array,_ = freenect.sync_get_depth()
-    array = array.astype(np.uint8)
-    return array
-
-def getConvexHulls(contours):
-    #https://docs.opencv.org/3.4/d7/d1d/tutorial_hull.html
-    hull_list = []
-    for i in range(len(contours)):
-        hull = cv2.convexHull(contours[i])
-        hull_list.append(hull)
-
-    return hull_list
-
-#https://stackoverflow.com/questions/6471023/how-to-calculate-convex-hull-area-using-opencv-functions
-def ConvexHullArea(hull):
-    area = 0
-    for i in  range(len(hull) - 1):
-        next_i = (i+1)%(len(hull))
-        dX   = hull[next_i][0][0] - hull[i][0][0]
-        avgY = (hull[next_i][0][1] + hull[i][0][1])/2
-        area += dX * avgY;  # his is the integration step.
-
-    return area
-
-def processHullData(hull):
-    output_vectors = []
-
-    for selected_hull in hull:
-        vector_arr = []
-
-        vector_arr.append(selected_hull[0][0])
-        vector_arr.append(selected_hull[0][1])
-
-        output_vectors.append(vector_arr)
-
-    return output_vectors
-
-def twovVectGradient(vector_a, vector_b):
-    try:
-        gradient = (vector_b[1] - vector_a[1])/(vector_b[0] - vector_a[0])
-    except:
-        gradient = 0
-    finally:
-        return gradient
-
-def hullPointingUp(hull):
-    cloned_hull = hull.copy()
-
-    y_axis_sorted = sorted(processHullData(cloned_hull), key=lambda a_entry: a_entry[1]) 
-    x_axis_sorted = sorted(processHullData(cloned_hull), key=lambda a_entry: a_entry[0]) 
-
-    left_point = x_axis_sorted[0]
-    right_point = x_axis_sorted[len(x_axis_sorted) - 1]
-
-    bottom_point = y_axis_sorted[0]
-    top_point = y_axis_sorted[len(y_axis_sorted) - 1]
-
-    left_avg_gradient = twovVectGradient(left_point, top_point)
-
-    right_avg_gradient = twovVectGradient(right_point, top_point)
-
-    #print("Left:" + str(left_point[0]) + ", " + str(left_point[1]))
-    #print("Right:" + str(right_point[0]) + ", " + str(right_point[1]))
-    #print("Top:" + str(top_point[0]) + ", " + str(top_point[1]))
-    #print(str(left_avg_gradient) + " | " + str(right_avg_gradient) + " | " + str(left_avg_gradient <= 1 and right_avg_gradient <= -1))
-
-    return (
-        (left_avg_gradient <= 1.5 and left_avg_gradient >= 0) and 
-        right_avg_gradient <= -0.5)
-
-#next, find if convex hull is pointing up!
-#geomalgorithms.com/a14-_extreme_pts.html
-
-def getHullTopWidth(vector_arr):
-    cloned_arr = vector_arr.copy()
-
-def getExtremePoints(hull):
-    leftmost = tuple(hull[hull[:,:,0].argmin()][0])
-    rightmost = tuple(hull[hull[:,:,0].argmax()][0])
-    topmost = tuple(hull[hull[:,:,1].argmin()][0])
-    bottommost = tuple(hull[hull[:,:,1].argmax()][0])
-
-    return {'left': leftmost, 'right': rightmost, 'top': topmost, 'bottom': bottommost}
-
-
-def generateValidConvexHulls(ProcessedFrame):
-    whiteFrame = 255 * np.ones((1000,1000,3), np.uint8)
-
-    #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
-    edge = cv2.Canny(ProcessedFrame, 30, 200)
-    contours, h = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)
-
-    #cv2.drawContours(HSVThresholdFrame, contours[0], -1, (255,0,0), thickness = 5)
-
-    
-
-    processed_contours = []
-
-    for contour in contours:
-        if cv2.contourArea(contour) >= 100:
-           processed_contours.append(contour) 
-
-    valid_hulls = []
-
-    for c in processed_contours:
-        hull = cv2.convexHull(c)
-
-        if ((len(hull) >= 3 or len(hull) <= 10) and 
-            (ConvexHullArea(hull) > minimum_hull_size or 
-            (ConvexHullArea(hull) * -1) > minimum_hull_size)
-            and hullPointingUp(hull)):
-                rect = cv2.minAreaRect(hull)
-                (x, y), (width, height), angle = rect
-
-                aspect_ratio = float(width) / height
-
-                box = cv2.boxPoints(rect)
-                box = np.int0(box)
-
-                #if greater than 1, then width is greater than height
-                if aspect_ratio < 1:
-                    extremePoints = getExtremePoints(hull)
-
-                    LRAvg = [(extremePoints["left"][0] + extremePoints["right"][0])/2, (extremePoints["left"][1] + extremePoints["right"][1])/2]
-                    cv2.circle(whiteFrame, (int(LRAvg[0]), int(LRAvg[1])), radius=0, color=(0, 0, 255), thickness=10)
-
-                    TBAvg = math.dist(extremePoints["bottom"], extremePoints["top"])
-
-                    distanceFromLRAvg = []
-
-                    distanceFromLRAvg.append(math.dist(LRAvg, extremePoints["top"]))
-                    distanceFromLRAvg.append(math.dist(LRAvg, extremePoints["bottom"]))
-
-                    validRatio = list(filter(lambda x: x < TBAvg * 0.25, distanceFromLRAvg))
-
-                    if (len(validRatio) > 0) and (ConvexHullArea(hull) <= (width * height) * 0.6):
-                        valid_hulls.append(hull)
-
-    cv2.putText(whiteFrame, str(len(valid_hulls)), (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-
-    for hull in valid_hulls:
-        cv2.drawContours(whiteFrame, [hull], 0, (255, 0, 255), 2)
-
-        #https://stackoverflow.com/questions/66953166/how-to-find-the-direction-of-triangles-in-an-image-using-opencv
-        #https://stackoverflow.com/questions/49799057/how-to-draw-a-point-in-an-image-using-given-co-ordinate-with-python-opencv
-        #https://stackoverflow.com/questions/16615662/how-to-write-text-on-a-image-in-windows-using-python-opencv2
-
-        #https://customers.pyimagesearch.com/lesson-sample-advanced-contour-properties/
-        #https://docs.opencv.org/3.4/d1/d32/tutorial_py_contour_properties.html
-
-        #look at using aspect ratio & solidity
-
-        #cv2.circle(whiteFrame, (cx, cy), radius=0, color=(0, 0, 255), thickness=10)
-        #cv2.putText(whiteFrame, str(round(cv2.arcLength(hull,True), 2)), (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-
-        #https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_contours/py_contour_features/py_contour_features.html
-
-        #cv2.putText(whiteFrame, str(rect[-1]), (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-        #cv2.drawContours(whiteFrame, [box], 0, (0, 0, 255), 2)
-
-            
-        #sleep(0.5)
-
-    return whiteFrame
-
-def processImg(HSVThresholdFrame):  
-    #processing steps: https://imgur.com/a/9Muz1LN
-    output_img = cv2.erode(HSVThresholdFrame, np.ones((3, 3), np.uint8))
-    output_img = cv2.dilate(output_img, np.ones((7, 7), np.uint8), iterations=2)
-    output_img = cv2.GaussianBlur(output_img, (15, 15), 0)
-    
-    return output_img
     
 if __name__ == "__main__":
     cv2.namedWindow(window_capture_name)
@@ -276,27 +281,32 @@ if __name__ == "__main__":
     cv2.createTrackbar(low_V_name, window_detection_name, low_V, max_value, on_low_V_thresh_trackbar)
     cv2.createTrackbar(high_V_name, window_detection_name, high_V, max_value, on_high_V_thresh_trackbar)
 
-    while 1:
-        #get a frame from RGB camera
-        frame = get_video()
-        #get a frame from depth sensor
-        depth = get_depth()
+    kinectVideoThread = KinectVideoReader()
+    kinectVideoThread.start()
 
-        #HSV (hue, saturation, value)
-        frame_HSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        frame_threshold = cv2.inRange(frame_HSV, (low_H, low_S, low_V), (high_H, high_S, high_V))
-        
-        cv2.imshow(window_capture_name, frame)
-        cv2.imshow(window_detection_name, frame_threshold)
+    sleep(0.5)
 
-        processedImg = processImg(frame_threshold)
-        hullImg = generateValidConvexHulls(processedImg)
+    HSVProcessorThread = HSVProcessor(kinectVideoThread)
+    HSVProcessorThread.start()
 
-        cv2.imshow(window_processedimg_name, hullImg)
+    sleep(0.5)
 
-        cv2.imshow(window_depth_name, depth)        
+    ConeDetectorThread = ConeDetector(HSVProcessorThread)
+    ConeDetectorThread.start()
+
+    sleep(0.5)
+
+    while True:     
+        cv2.imshow(window_capture_name, kinectVideoThread.RGB_frame)
+        cv2.imshow(window_detection_name, HSVProcessorThread.frame_threshold)
+
+        #hullImg = generateValidConvexHulls(HSVProcessorThread.procesed_frame)
+
+        cv2.imshow(window_processedimg_name, ConeDetectorThread.DectedConeFrame)
+        cv2.imshow(window_depth_name, kinectVideoThread.depth_frame)        
 
         k = cv2.waitKey(5) & 0xFF
+
         if k == 27:
             break
     cv2.destroyAllWindows()
