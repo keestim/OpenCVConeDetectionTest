@@ -23,10 +23,10 @@ max_value = 255
 max_value_H = 360//2
 
 low_H = 0
-low_S = 0
+low_S = 85
 low_V = 123
-high_H = 42
-high_S = 255
+high_H = 53
+high_S = 189
 high_V = 255
 
 class ImageViewer(Enum):
@@ -136,8 +136,6 @@ class ConeDetector(threading.Thread):
         return {'left': left_most, 'right': right_most, 'top': top_most, 'bottom': bottom_most}
 
     def renderValidConvexHulls(self, ProcessedFrame):
-        whiteFrame = 255 * np.ones((1000,1000,3), np.uint8)
-
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
 
         #get edges and then contours from the processed frame
@@ -170,18 +168,21 @@ class ConeDetector(threading.Thread):
                     box = cv2.boxPoints(rect)
                     box = np.int0(box)
 
-                    #draws the rotates rectangle
-                    cv2.drawContours(ProcessedFrame, [box], 0, (255, 0, 255), 2)
+                    #draws the rotated rectangle
+                    #cv2.drawContours(ProcessedFrame, [box], 0, (255, 0, 255), 2)
 
                     #if greater than 1, then width is greater than height
                     #we expect cones to be standing upright, hence being taller than they are wide
                     if aspect_ratio <= 1:
                         extreme_points = self.getExtremePoints(hull)
 
-                        #gets the average of the top and bottom points
+                        #gets the average of the left and right points
                         LRAvg = [
                             (extreme_points["left"][0] + extreme_points["right"][0])/2, 
                             (extreme_points["left"][1] + extreme_points["right"][1])/2]
+
+                        #visualize Left - Right average point
+                        #cv2.circle(ProcessedFrame, (int(LRAvg[0]), int(LRAvg[1])), 3, (255, 0, 255), 7)
 
                         #Essentially the height, gets the average of the top and bottom points
                         TBDistance = math.dist(extreme_points["bottom"], extreme_points["top"])
@@ -297,13 +298,12 @@ if __name__ == "__main__":
     sleep(0.5)
 
     while True:     
-        cv2.imshow(window_capture_name, kinectVideoThread.RGB_frame)
+        cv2.imshow(window_capture_name, kinectVideoThread.RGB_frame)        
+
         cv2.imshow(window_detection_name, HSVProcessorThread.frame_threshold)
 
-        #hullImg = generateValidConvexHulls(HSVProcessorThread.procesed_frame)
-
         cv2.imshow(window_processedimg_name, ConeDetectorThread.DectedConeFrame)
-        cv2.imshow(window_depth_name, kinectVideoThread.depth_frame)        
+        cv2.imshow(window_depth_name, kinectVideoThread.depth_frame)     
 
         k = cv2.waitKey(5) & 0xFF
 
