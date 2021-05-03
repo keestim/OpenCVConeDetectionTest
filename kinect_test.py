@@ -13,19 +13,20 @@ import numpy as np
 import time
 from time import sleep
 import random as rng
+import math
 
-minimum_hull_size = 250
+minimum_hull_size = 500
 
 #https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
 #UI Stuff
 max_value = 255
 max_value_H = 360//2
 
-low_H = 0
-low_S = 61
-low_V = 0
-high_H = 116
-high_S = 165
+low_H = 11
+low_S = 0
+low_V = 113
+high_H = 53
+high_S = 200
 high_V = 255
 
 window_capture_name = 'Video Capture'
@@ -163,32 +164,33 @@ def hullPointingUp(hull):
 #geomalgorithms.com/a14-_extreme_pts.html
 
 def getHullTopWidth(vector_arr):
-
     cloned_arr = vector_arr.copy()
 
+def getExtremePoints(hull):
+    leftmost = tuple(hull[hull[:,:,0].argmin()][0])
+    rightmost = tuple(hull[hull[:,:,0].argmax()][0])
+    topmost = tuple(hull[hull[:,:,1].argmin()][0])
+    bottommost = tuple(hull[hull[:,:,1].argmax()][0])
 
-def processImg(HSVThresholdFrame):  
-    #print("New Loop!")
+    return {'left': leftmost, 'right': rightmost, 'top': topmost, 'bottom': bottommost}
 
-    kernel = np.ones((5, 5), np.uint8)
 
-    output_img = cv2.erode(HSVThresholdFrame, kernel)
-    output_img = cv2.dilate(output_img, kernel, iterations=2)
-    output_img = cv2.GaussianBlur(output_img, (15, 15), 0)
+def generateValidConvexHulls(ProcessedFrame):
+    whiteFrame = 255 * np.ones((1000,1000,3), np.uint8)
 
-    ret,thresh = cv2.threshold(output_img, 100, 255, 0)
-    
     #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
-    edge = cv2.Canny(output_img, 30, 200)
+    edge = cv2.Canny(ProcessedFrame, 30, 200)
     contours, h = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     #cv2.drawContours(HSVThresholdFrame, contours[0], -1, (255,0,0), thickness = 5)
 
+    
+
     processed_contours = []
 
     for contour in contours:
-        if cv2.contourArea(contour) >= 20:
+        if cv2.contourArea(contour) >= 100:
            processed_contours.append(contour) 
 
     valid_hulls = []
@@ -200,12 +202,65 @@ def processImg(HSVThresholdFrame):
             (ConvexHullArea(hull) > minimum_hull_size or 
             (ConvexHullArea(hull) * -1) > minimum_hull_size)
             and hullPointingUp(hull)):
-            valid_hulls.append(hull)
+                rect = cv2.minAreaRect(hull)
+                (x, y), (width, height), angle = rect
 
-    #whiteFrame = 255 * np.ones((1000,1000,3), np.uint8)
+                aspect_ratio = float(width) / height
+
+                box = cv2.boxPoints(rect)
+                box = np.int0(box)
+
+                #if greater than 1, then width is greater than height
+                if aspect_ratio < 1:
+                    extremePoints = getExtremePoints(hull)
+
+                    LRAvg = [(extremePoints["left"][0] + extremePoints["right"][0])/2, (extremePoints["left"][1] + extremePoints["right"][1])/2]
+                    cv2.circle(whiteFrame, (int(LRAvg[0]), int(LRAvg[1])), radius=0, color=(0, 0, 255), thickness=10)
+
+                    TBAvg = math.dist(extremePoints["bottom"], extremePoints["top"])
+
+                    distanceFromLRAvg = []
+
+                    distanceFromLRAvg.append(math.dist(LRAvg, extremePoints["top"]))
+                    distanceFromLRAvg.append(math.dist(LRAvg, extremePoints["bottom"]))
+
+                    validRatio = list(filter(lambda x: x < TBAvg * 0.25, distanceFromLRAvg))
+
+                    if (len(validRatio) > 0) and (ConvexHullArea(hull) <= (width * height) * 0.6):
+                        valid_hulls.append(hull)
+
+    cv2.putText(whiteFrame, str(len(valid_hulls)), (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
 
     for hull in valid_hulls:
-        cv2.drawContours(output_img, [hull], 0, (255, 0, 255), 2)
+        cv2.drawContours(whiteFrame, [hull], 0, (255, 0, 255), 2)
+
+        #https://stackoverflow.com/questions/66953166/how-to-find-the-direction-of-triangles-in-an-image-using-opencv
+        #https://stackoverflow.com/questions/49799057/how-to-draw-a-point-in-an-image-using-given-co-ordinate-with-python-opencv
+        #https://stackoverflow.com/questions/16615662/how-to-write-text-on-a-image-in-windows-using-python-opencv2
+
+        #https://customers.pyimagesearch.com/lesson-sample-advanced-contour-properties/
+        #https://docs.opencv.org/3.4/d1/d32/tutorial_py_contour_properties.html
+
+        #look at using aspect ratio & solidity
+
+        #cv2.circle(whiteFrame, (cx, cy), radius=0, color=(0, 0, 255), thickness=10)
+        #cv2.putText(whiteFrame, str(round(cv2.arcLength(hull,True), 2)), (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+
+        #https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_contours/py_contour_features/py_contour_features.html
+
+        #cv2.putText(whiteFrame, str(rect[-1]), (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+        #cv2.drawContours(whiteFrame, [box], 0, (0, 0, 255), 2)
+
+            
+        #sleep(0.5)
+
+    return whiteFrame
+
+def processImg(HSVThresholdFrame):  
+    #processing steps: https://imgur.com/a/9Muz1LN
+    output_img = cv2.erode(HSVThresholdFrame, np.ones((3, 3), np.uint8))
+    output_img = cv2.dilate(output_img, np.ones((7, 7), np.uint8), iterations=2)
+    output_img = cv2.GaussianBlur(output_img, (15, 15), 0)
     
     return output_img
     
@@ -233,7 +288,11 @@ if __name__ == "__main__":
         
         cv2.imshow(window_capture_name, frame)
         cv2.imshow(window_detection_name, frame_threshold)
-        cv2.imshow(window_processedimg_name, processImg(frame_threshold))
+
+        processedImg = processImg(frame_threshold)
+        hullImg = generateValidConvexHulls(processedImg)
+
+        cv2.imshow(window_processedimg_name, hullImg)
 
         cv2.imshow(window_depth_name, depth)        
 
