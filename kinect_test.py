@@ -148,7 +148,7 @@ class ConeDetector(threading.Thread):
         #select contours that are greater than 100
         #this removes any irrelevant data
         for contour in contours:
-            if cv2.contourArea(contour) >= 100:
+            if cv2.contourArea(contour) >= 75:
                 processed_contours.append(contour) 
 
         valid_hulls = []
@@ -195,10 +195,10 @@ class ConeDetector(threading.Thread):
                         #either the length from the top to the LR average 
                         #or the lenght from the bottom to the LR average
                         #must be less than 35% of the total height
-                        valid_ratio = list(filter(lambda x: x < TBDistance * 0.35, distance_from_LR_avg))
+                        valid_ratio = list(filter(lambda x: x < TBDistance * 0.4, distance_from_LR_avg))
 
                         #width and height are from rotated rectange above
-                        if (len(valid_ratio) > 0) and (self.ConvexHullArea(hull) <= (width * height) * 0.5):
+                        if (len(valid_ratio) > 0) and (self.ConvexHullArea(hull) <= (width * height) * 0.70):
                             valid_hulls.append(hull)
 
         for hull in valid_hulls:
