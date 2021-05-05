@@ -36,22 +36,22 @@ class GUIInformation:
     def __on_low_H_thresh_trackbar(self, val):
         self.fHSV_processor_thread.set_low_H(val)
         self.fHSV_processor_thread.low_H = min(self.fHSV_processor_thread.get_high_H() - 1, self.fHSV_processor_thread.get_low_H())
-        cv2.setTrackbarPos(self.low_H_name, self.fwindow_detection_name, self.fHSV_processor_thread.get_low_H())
+        cv2.setTrackbarPos(self.flow_H_name, self.fwindow_detection_name, self.fHSV_processor_thread.get_low_H())
 
     def __on_high_H_thresh_trackbar(self, val):
         self.fHSV_processor_thread.set_high_H(val)
         self.fHSV_processor_thread.high_H = max(self.fHSV_processor_thread.get_high_H(), self.fHSV_processor_thread.get_low_H() + 1)
-        cv2.setTrackbarPos(self.high_H_name, self.fwindow_detection_name, self.fHSV_processor_thread.get_high_H())
+        cv2.setTrackbarPos(self.fhigh_H_name, self.fwindow_detection_name, self.fHSV_processor_thread.get_high_H())
 
     def __on_low_S_thresh_trackbar(self, val):
         self.fHSV_processor_thread.set_low_S(val)
         self.fHSV_processor_thread.low_S = min(self.fHSV_processor_thread.get_high_S() - 1, self.fHSV_processor_thread.get_low_S())
-        cv2.setTrackbarPos(self.low_S_name, self.fwindow_detection_name, self.fHSV_processor_thread.get_low_S())
+        cv2.setTrackbarPos(self.flow_S_name, self.fwindow_detection_name, self.fHSV_processor_thread.get_low_S())
 
     def __on_high_S_thresh_trackbar(self, val):
         self.fHSV_processor_thread.set_high_S(val)
         self.fHSV_processor_thread.high_S = max(self.fHSV_processor_thread.get_high_S(), self.fHSV_processor_thread.get_low_S() + 1)
-        cv2.setTrackbarPos(self.high_S_name, self.fwindow_detection_name, self.fHSV_processor_thread.get_high_S())
+        cv2.setTrackbarPos(self.fhigh_S_name, self.fwindow_detection_name, self.fHSV_processor_thread.get_high_S())
 
     def __on_low_V_thresh_trackbar(self, val):
         self.fHSV_processor_thread.set_low_V(val)
