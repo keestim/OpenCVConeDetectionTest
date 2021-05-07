@@ -2,33 +2,42 @@ import threading
 from VideoSource import *
 import cv2
 import numpy as np
+from time import sleep
 
 class HSVProcessor(threading.Thread):
-    def __init__(self, video_thread):
+    def __init__(self, video_thread, frame_thread_Lock):
         threading.Thread.__init__(self)
         self.fvideo_thread = video_thread
         self.fprocesed_frame = None
         self.fHSV_frame = None
         self.fframe_threshold = None
 
+        self.fframe_thread_Lock = frame_thread_Lock
+
         self.fmax_value = 255
         self.fmax_value_H = 360//2
 
         self.flow_H = 0
-        self.flow_S = 85
-        self.flow_V = 123
-        self.fhigh_H = 53
-        self.fhigh_S = 189
+        self.flow_S = 0
+        self.flow_V = 25
+        self.fhigh_H = 51
+        self.fhigh_S = 173
         self.fhigh_V = 255
         
     def run(self):
         while True:
             try:
-                self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.RGB_frame, cv2.COLOR_BGR2HSV)
+                self.fframe_thread_Lock.acquire()
+            finally:
+                #try:
+                self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.get_RGB_frame(), cv2.COLOR_BGR2HSV)
                 self.fframe_threshold = cv2.inRange(self.fHSV_frame, (self.flow_H, self.flow_S, self.flow_V), (self.fhigh_H, self.fhigh_S, self.fhigh_V))
                 self.fprocesed_frame = self.__processImg(self.fframe_threshold)
-            except:
-                print("HSVProcessor Error")
+                #except:
+                #    print("HSVProcessor Error")
+
+                self.fframe_thread_Lock.release()
+                sleep(0.01)
 
     def __processImg(self, input_frame):  
         #processing steps: https://imgur.com/a/9Muz1LN

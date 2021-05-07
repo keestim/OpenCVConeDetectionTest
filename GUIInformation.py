@@ -6,15 +6,16 @@ from HSVProcessor import *
 from time import sleep
 
 class GUIInformation:
-    def __init__(self, video_feed):
+    def __init__(self, video_feed, generate_frame_lock, render_frame_lock):
         self.fvideo_feed_thread = video_feed
+        self.frender_frame_lock = render_frame_lock
 
-        self.fHSV_processor_thread = HSVProcessor(self.fvideo_feed_thread)
+        self.fHSV_processor_thread = HSVProcessor(self.fvideo_feed_thread, generate_frame_lock)
         self.fHSV_processor_thread.start()
 
         sleep(0.2)
 
-        self.fcone_detector_thread = ConeDetector(self.fHSV_processor_thread)
+        self.fcone_detector_thread = ConeDetector(self.fHSV_processor_thread, render_frame_lock)
         self.fcone_detector_thread.start()
 
         sleep(0.2)
@@ -111,7 +112,9 @@ class GUIInformation:
             self.__on_high_V_thresh_trackbar)
 
     def render_window_frames(self):
-        cv2.imshow(self.fwindow_capture_name, self.fvideo_feed_thread.RGB_frame)        
+
+        cv2.imshow(self.fwindow_depth_name, self.fvideo_feed_thread.get_depth_frame())    
+        cv2.imshow(self.fwindow_capture_name, self.fvideo_feed_thread.get_RGB_frame())        
         cv2.imshow(self.fwindow_detection_name, self.fHSV_processor_thread.get_frame_threshold())
-        cv2.imshow(self.fwindow_processedimg_name, self.fcone_detector_thread.get_detected_cone_frame())
-        cv2.imshow(self.fwindow_depth_name, self.fvideo_feed_thread.depth_frame)    
+        cv2.imshow(self.fwindow_processedimg_name, self.fcone_detector_thread.get_detected_cone_frame())        
+        
