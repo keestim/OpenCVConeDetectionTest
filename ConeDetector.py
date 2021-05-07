@@ -4,6 +4,7 @@ import numpy as np
 import random as rng
 import math
 from time import sleep
+import copy
 
 class ConeDetector(threading.Thread):
     def __init__(self, hsv_processor, frame_thread_Lock):
@@ -16,12 +17,13 @@ class ConeDetector(threading.Thread):
 
     def run(self):
         while True:
-            processed_contours = self.__generate_contours(self.fhsv_processor.get_procesed_frame())
+            current_frame = copy.deepcopy(self.fhsv_processor.get_procesed_frame())
+            processed_contours = self.__generate_contours(current_frame)
 
             try:
                 self.fframe_thread_Lock.acquire()
             finally:
-                self.fdetected_cone_frame = self.__render_valid_convex_hulls(self.fhsv_processor.get_procesed_frame(), processed_contours)
+                self.fdetected_cone_frame = self.__render_valid_convex_hulls(current_frame, processed_contours)
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
 
@@ -74,59 +76,67 @@ class ConeDetector(threading.Thread):
 
         return processed_contours
 
+    def __is_valid_convex_hull(self, hull):
+        #A valid hull must have between 3 and 10 edges
+        if ((len(hull) >= 3 or len(hull) <= 10) and 
+            (self.__get_convex_hull_area(hull) > self.fminimum_hull_size or 
+            (self.__get_convex_hull_area(hull) * -1) > self.fminimum_hull_size)):
+                rect = cv2.minAreaRect(hull)
+                (x, y), (width, height), angle = rect
+
+                aspect_ratio = float(width) / height
+
+                box = cv2.boxPoints(rect)
+                box = np.int0(box)
+
+                #draws the rotated rectangle
+                #cv2.drawContours(ProcessedFrame, [box], 0, (255, 0, 255), 2)
+
+                #if greater than 1, then width is greater than height
+                #we expect cones to be standing upright, hence being taller than they are wide
+                if aspect_ratio <= 1:
+                    extreme_points = self.__get_extreme_points(hull)
+
+                    #gets the average of the left and right points
+                    LRAvg = [
+                        (extreme_points["left"][0] + extreme_points["right"][0])/2, 
+                        (extreme_points["left"][1] + extreme_points["right"][1])/2]
+
+                    #visualize Left - Right average point
+                    #cv2.circle(ProcessedFrame, (int(LRAvg[0]), int(LRAvg[1])), 3, (255, 0, 255), 7)
+
+                    #Essentially the height, gets the average of the top and bottom points
+                    TBDistance = math.dist(extreme_points["bottom"], extreme_points["top"])
+
+                    distance_from_LR_avg = []
+
+                    distance_from_LR_avg.append(math.dist(LRAvg, extreme_points["top"]))
+                    distance_from_LR_avg.append(math.dist(LRAvg, extreme_points["bottom"]))
+
+                    #either the length from the top to the LR average 
+                    #or the lenght from the bottom to the LR average
+                    #must be less than 35% of the total height
+                    valid_ratio = list(filter(lambda x: x < TBDistance * 0.4, distance_from_LR_avg))
+
+                    #width and height are from rotated rectange above
+                    if (len(valid_ratio) > 0) and (self.__get_convex_hull_area(hull) <= (width * height) * 0.70):
+                        return True
+        
+        return False
+
     def __render_valid_convex_hulls(self, ProcessedFrame, ProcessedContours):
+        #Although the array isn't current being used, this will be utilized later!
         valid_hulls = []
+
+        print("New Convex Hull Set:")
 
         for c in ProcessedContours:
             hull = cv2.convexHull(c)
-
-            #A valid hull must have between 3 and 10 edges
-            if ((len(hull) >= 3 or len(hull) <= 10) and 
-                (self.__get_convex_hull_area(hull) > self.fminimum_hull_size or 
-                (self.__get_convex_hull_area(hull) * -1) > self.fminimum_hull_size)):
-                    rect = cv2.minAreaRect(hull)
-                    (x, y), (width, height), angle = rect
-
-                    aspect_ratio = float(width) / height
-
-                    box = cv2.boxPoints(rect)
-                    box = np.int0(box)
-
-                    #draws the rotated rectangle
-                    #cv2.drawContours(ProcessedFrame, [box], 0, (255, 0, 255), 2)
-
-                    #if greater than 1, then width is greater than height
-                    #we expect cones to be standing upright, hence being taller than they are wide
-                    if aspect_ratio <= 1:
-                        extreme_points = self.__get_extreme_points(hull)
-
-                        #gets the average of the left and right points
-                        LRAvg = [
-                            (extreme_points["left"][0] + extreme_points["right"][0])/2, 
-                            (extreme_points["left"][1] + extreme_points["right"][1])/2]
-
-                        #visualize Left - Right average point
-                        #cv2.circle(ProcessedFrame, (int(LRAvg[0]), int(LRAvg[1])), 3, (255, 0, 255), 7)
-
-                        #Essentially the height, gets the average of the top and bottom points
-                        TBDistance = math.dist(extreme_points["bottom"], extreme_points["top"])
-
-                        distance_from_LR_avg = []
-
-                        distance_from_LR_avg.append(math.dist(LRAvg, extreme_points["top"]))
-                        distance_from_LR_avg.append(math.dist(LRAvg, extreme_points["bottom"]))
-
-                        #either the length from the top to the LR average 
-                        #or the lenght from the bottom to the LR average
-                        #must be less than 35% of the total height
-                        valid_ratio = list(filter(lambda x: x < TBDistance * 0.4, distance_from_LR_avg))
-
-                        #width and height are from rotated rectange above
-                        if (len(valid_ratio) > 0) and (self.__get_convex_hull_area(hull) <= (width * height) * 0.70):
-                            valid_hulls.append(hull)
-
-        for hull in valid_hulls:
-            cv2.drawContours(ProcessedFrame, [hull], 0, (255, 0, 255), 2)
+            
+            if (self.__is_valid_convex_hull(hull)):
+                valid_hulls.append(hull)
+                print(hull)
+                cv2.drawContours(ProcessedFrame, [hull], 0, (255, 0, 255), 2)
 
         return ProcessedFrame
 

@@ -116,12 +116,5 @@ class GUIInformation:
         cv2.imshow(self.fwindow_depth_name, self.fvideo_feed_thread.get_depth_frame())    
         cv2.imshow(self.fwindow_capture_name, self.fvideo_feed_thread.get_RGB_frame())        
         cv2.imshow(self.fwindow_detection_name, self.fHSV_processor_thread.get_frame_threshold())
-
-        try:
-            self.frender_frame_lock.acquire()
-        finally:
-
-            cv2.imshow(self.fwindow_processedimg_name, self.fcone_detector_thread.get_detected_cone_frame())        
-            
-            self.frender_frame_lock.release()
-            sleep(0.1)
+        cv2.imshow(self.fwindow_processedimg_name, self.fcone_detector_thread.get_detected_cone_frame())        
+        

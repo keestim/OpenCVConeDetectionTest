@@ -24,7 +24,12 @@ if __name__ == "__main__":
     GUI_info = GUIInformation(kinect_video_thread, generate_frame_lock, render_frame_lock)
 
     while True:     
-        GUI_info.render_window_frames()
+        try:
+            render_frame_lock.acquire()
+        finally:
+            GUI_info.render_window_frames()
+            render_frame_lock.release()
+            sleep(0.01)
 
         k = cv2.waitKey(5) & 0xFF
 
