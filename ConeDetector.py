@@ -3,17 +3,27 @@ import threading
 import numpy as np
 import random as rng
 import math
+from time import sleep
 
 class ConeDetector(threading.Thread):
-    def __init__(self, hsv_processor):
+    def __init__(self, hsv_processor, frame_thread_Lock):
         threading.Thread.__init__(self)
         self.fhsv_processor = hsv_processor
         self.fdetected_cone_frame = None
         self.fminimum_hull_size = 500
 
+        self.fframe_thread_Lock = frame_thread_Lock
+
     def run(self):
         while True:
-            self.fdetected_cone_frame = self.__render_valid_convex_hulls(self.fhsv_processor.get_procesed_frame())
+            processed_contours = self.__generate_contours(self.fhsv_processor.get_procesed_frame())
+
+            try:
+                self.fframe_thread_Lock.acquire()
+            finally:
+                self.fdetected_cone_frame = self.__render_valid_convex_hulls(self.fhsv_processor.get_procesed_frame(), processed_contours)
+                self.fframe_thread_Lock.release()
+                sleep(0.01)
 
     def get_detected_cone_frame(self):
         return self.fdetected_cone_frame
@@ -46,7 +56,7 @@ class ConeDetector(threading.Thread):
 
         return {'left': left_most, 'right': right_most, 'top': top_most, 'bottom': bottom_most}
 
-    def __render_valid_convex_hulls(self, ProcessedFrame):
+    def __generate_contours(self, ProcessedFrame):
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
 
         #get edges and then contours from the processed frame
@@ -62,9 +72,12 @@ class ConeDetector(threading.Thread):
             if cv2.contourArea(contour) >= 75:
                 processed_contours.append(contour) 
 
+        return processed_contours
+
+    def __render_valid_convex_hulls(self, ProcessedFrame, ProcessedContours):
         valid_hulls = []
 
-        for c in processed_contours:
+        for c in ProcessedContours:
             hull = cv2.convexHull(c)
 
             #A valid hull must have between 3 and 10 edges

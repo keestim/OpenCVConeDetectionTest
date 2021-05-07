@@ -7,15 +7,10 @@ import cv2
 import numpy as np
 
 class KinectVideoReader(VideoSource, threading.Thread):
-    def __init__(self):
-        VideoSource.__init__(self)
+    def __init__(self, frame_thread_Lock):
+        VideoSource.__init__(self, frame_thread_Lock)
         threading.Thread.__init__(self)
-
-    def run(self):
-        while True:
-            self.RGB_frame = self.get_video()
-            self.depth_frame = self.get_depth()
-
+        
     #function to get RGB image from kinect
     def get_video(self): 
         array,_ = freenect.sync_get_video()

@@ -8,18 +8,20 @@ from abc import ABC, abstractmethod
 
 import cv2
 import numpy as np
-import time
 from time import sleep
 from enum import Enum 
 import threading
     
 if __name__ == "__main__":
-    kinect_video_thread = KinectVideoReader()
+    render_frame_lock = threading.Lock()
+    generate_frame_lock = threading.Lock()
+    
+    kinect_video_thread = KinectVideoReader(generate_frame_lock)
     kinect_video_thread.start()
 
-    sleep(0.5)
+    sleep(0.1)
 
-    GUI_info = GUIInformation(kinect_video_thread)
+    GUI_info = GUIInformation(kinect_video_thread, generate_frame_lock, render_frame_lock)
 
     while True:     
         GUI_info.render_window_frames()
