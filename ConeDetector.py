@@ -27,6 +27,22 @@ class ConeDetector(threading.Thread):
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
 
+    #https://jdhao.github.io/2019/02/23/crop_rotated_rectangle_opencv/
+    #generates a cropped frame from the input frame and rotated rectangle attributes
+    def __crop_img_from_rotated_rect(self, frame, box, width, height):
+        src_points = box.astype("float32")
+        dst_points = np.array(
+                        [[0, height - 1], 
+                        [0, 0], 
+                        [width - 1, 0], 
+                        [width -1, height - 1]], 
+                        dtype="float32")
+
+        M = cv2.getPerspectiveTransform(src_points, dst_points)
+        warped = cv2.warpPerspective(frame, M, (width, height))
+
+        return warped 
+
     def get_detected_cone_frame(self):
         return self.fdetected_cone_frame
 
@@ -76,10 +92,7 @@ class ConeDetector(threading.Thread):
 
         return processed_contours
 
-    def __is_valid_convex_hull(self, hull):
-        #next step, determine how "solid" the convex hull is!
-        #(this should help in removing unnessary noise)
-
+    def __is_valid_convex_hull(self, hull, ProcessedFrame):
         #A valid hull must have between 3 and 10 edges
         if ((len(hull) >= 3 or len(hull) <= 10) and 
             (self.__get_convex_hull_area(hull) > self.fminimum_hull_size or 
@@ -135,7 +148,15 @@ class ConeDetector(threading.Thread):
 
                     #width and height are from rotated rectange above
                     if (len(valid_ratio) > 0) and (self.__get_convex_hull_area(hull) <= (width * height) * 0.65):
-                        return True
+                        #gets a cropped frame of just what's contained within the rotated rectangle
+                        cropped_hull = self.__crop_img_from_rotated_rect(ProcessedFrame, box, int(width), int(height))
+
+                        #gets the mean RBG values of the frame
+                        #this mean determines how "solid" the convex hull is
+                        #if the mean is lower, it means the source data for the convex hull contains more gaps/empty space
+                        #from testing, 100 seems like an adiqute value
+                        if (cv2.mean(cropped_hull)[0] > 100):
+                            return True
         
         return False
 
@@ -146,7 +167,7 @@ class ConeDetector(threading.Thread):
         for c in ProcessedContours:
             hull = cv2.convexHull(c)
             
-            if (self.__is_valid_convex_hull(hull)):
+            if (self.__is_valid_convex_hull(hull, ProcessedFrame)):
                 valid_hulls.append(hull)           
                 cv2.drawContours(ProcessedFrame, [hull], 0, (255, 0, 255), 2)
 
