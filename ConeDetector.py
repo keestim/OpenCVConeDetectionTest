@@ -59,7 +59,7 @@ class ConeDetector(threading.Thread):
     def __get_convex_hull_area(self, hull):
         area = 0
         for i in  range(len(hull) - 1):
-            next_i = (i+1)%(len(hull))
+            next_i = (i + 1) % (len(hull))
             dX   = hull[next_i][0][0] - hull[i][0][0]
             avgY = (hull[next_i][0][1] + hull[i][0][1])/2
             area += dX * avgY;  # this is the integration step.
@@ -67,16 +67,15 @@ class ConeDetector(threading.Thread):
         return area
 
     def __get_extreme_points(self, hull):
-        left_most = tuple(hull[hull[:,:,0].argmin()][0])
-        right_most = tuple(hull[hull[:,:,0].argmax()][0])
-        top_most = tuple(hull[hull[:,:,1].argmin()][0])
-        bottom_most = tuple(hull[hull[:,:,1].argmax()][0])
+        left_most = tuple(hull[hull[:, :, 0].argmin()][0])
+        right_most = tuple(hull[hull[:, :, 0].argmax()][0])
+        top_most = tuple(hull[hull[:, :, 1].argmin()][0])
+        bottom_most = tuple(hull[hull[:, :, 1].argmax()][0])
 
         return {'left': left_most, 'right': right_most, 'top': top_most, 'bottom': bottom_most}
 
     def __generate_contours(self, ProcessedFrame):
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
-
         #get edges and then contours from the processed frame
         edge = cv2.Canny(ProcessedFrame, 30, 200)
         contours, h = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -84,7 +83,7 @@ class ConeDetector(threading.Thread):
 
         processed_contours = []
 
-        #select contours that are greater than 100
+        #select contours that are greater than 20
         #this removes any irrelevant data
         for contour in contours:
             if cv2.contourArea(contour) >= 20:
@@ -121,20 +120,14 @@ class ConeDetector(threading.Thread):
                 box = cv2.boxPoints(rect)
                 box = np.int0(box)
 
-                #draws the rotated rectangle
-                #cv2.drawContours(ProcessedFrame, [box], 0, (255, 0, 255), 2)
-
                 #if greater than 1, then width is greater than height
                 #we expect cones to be standing upright, hence being taller than they are wide
-                
+                #aspect ratio must be also greater than 0.15, which aids in removed irrelevant data
                 if (aspect_ratio <= 1) and (aspect_ratio >= 0.15):
                     #gets the average of the left and right points
                     LRAvg = [
                         (extreme_points["left"][0] + extreme_points["right"][0])/2, 
                         (extreme_points["left"][1] + extreme_points["right"][1])/2]
-
-                    #visualize Left - Right average point
-                    #cv2.circle(ProcessedFrame, (int(LRAvg[0]), int(LRAvg[1])), 3, (255, 0, 255), 7)
 
                     distance_from_LR_avg = []
 
@@ -142,11 +135,12 @@ class ConeDetector(threading.Thread):
                     distance_from_LR_avg.append(math.dist(LRAvg, extreme_points["bottom"]))
 
                     #either the length from the top to the LR average 
-                    #or the lenght from the bottom to the LR average
+                    #or the length from the bottom to the LR average
                     #must be less than 35% of the total height
                     valid_ratio = list(filter(lambda x: x < TBDistance * 0.35, distance_from_LR_avg))
 
                     #width and height are from rotated rectange above
+                    #area of the convex hull must be less than OR equal to 65% of the area fo the rotated rectangle
                     if (len(valid_ratio) > 0) and (self.__get_convex_hull_area(hull) <= (width * height) * 0.65):
                         #gets a cropped frame of just what's contained within the rotated rectangle
                         cropped_hull = self.__crop_img_from_rotated_rect(ProcessedFrame, box, int(width), int(height))
@@ -154,7 +148,7 @@ class ConeDetector(threading.Thread):
                         #gets the mean RBG values of the frame
                         #this mean determines how "solid" the convex hull is
                         #if the mean is lower, it means the source data for the convex hull contains more gaps/empty space
-                        #from testing, 100 seems like an adiqute value
+                        #from testing, 100 seems like an adequate value
                         if (cv2.mean(cropped_hull)[0] > 100):
                             return True
         
