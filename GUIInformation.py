@@ -112,6 +112,6 @@ class GUIInformation:
 
     def render_window_frames(self):
         cv2.imshow(self.fwindow_capture_name, self.fvideo_feed_thread.RGB_frame)        
-        #cv2.imshow(self.fwindow_detection_name, self.fHSV_processor_thread.get_frame_threshold())
-        #cv2.imshow(self.fwindow_processedimg_name, self.fcone_detector_thread.get_detected_cone_frame())
+        cv2.imshow(self.fwindow_detection_name, self.fHSV_processor_thread.get_frame_threshold())
+        cv2.imshow(self.fwindow_processedimg_name, self.fcone_detector_thread.get_detected_cone_frame())
         #cv2.imshow(self.fwindow_depth_name, self.fvideo_feed_thread.depth_frame)    
