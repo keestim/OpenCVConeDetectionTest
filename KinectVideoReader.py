@@ -11,11 +11,6 @@ class KinectVideoReader(VideoSource, threading.Thread):
         VideoSource.__init__(self)
         threading.Thread.__init__(self)
 
-    def run(self):
-        while True:
-            self.RGB_frame = self.get_video()
-            self.depth_frame = self.get_depth()
-
     #function to get RGB image from kinect
     def get_video(self): 
         array,_ = freenect.sync_get_video()
