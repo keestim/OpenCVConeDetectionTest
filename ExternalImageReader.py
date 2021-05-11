@@ -6,38 +6,37 @@ import cv2
 import sys
 import numpy as np
 
+from time import sleep
+
 class ExternalImageReader(VideoSource, threading.Thread):
     def __init__(self, fileSrc):
-        VideoSource.__init__(self)
+        super(VideoSource, self).__init__()
         threading.Thread.__init__(self)
-        self.ffileSrc = fileSrc
+
+        self.ffile_src = fileSrc
+        self.RGB_frame = self.get_video()
+        self.depth_frame = self.get_depth()
+
         
     def run(self):
         while True:
             self.RGB_frame = self.get_video()
             self.depth_frame = self.get_depth()
 
+    def get_file_src(self):
+        return self.ffile_src
+
     #function to get RGB image from kinect
     def get_video(self): 
-        #array,_ = freenect.sync_get_video()
-        #array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
-
-        array = cv2.imread(self.ffileSrc)
-        
+        array,_ = cv2.imread(self.ffile_src)
+        array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
         return array
+        
     
     #function to get depth image from kinect
     def get_depth(self):
         #array,_ = freenect.sync_get_depth()
         #array = array.astype(np.uint8)
+        sleep(1)
         return None
-
-'''class ImageInput()
-    def __init__(self)
-        input_img = input("Enter image name: ")
-        print ("importing image " + input_img)
-
-
-
-        return 
-'''
+        
