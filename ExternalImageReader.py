@@ -28,9 +28,13 @@ class ExternalImageReader(VideoSource, threading.Thread):
 
     #function to get RGB image from kinect
     def get_video(self): 
-        array,_ = cv2.imread(self.ffile_src)
-        array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
-        return array
+        #array = cv2.imread(self.ffile_src)
+        #array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
+
+        path = r'./RGB_Source.png'
+        img = cv2.imread(path)
+
+        return img
         
     
     #function to get depth image from kinect
