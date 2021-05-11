@@ -1,3 +1,6 @@
+#https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
+#UI Stuff
+
 from ConeDetector import *
 from HSVProcessor import *
 from time import sleep
