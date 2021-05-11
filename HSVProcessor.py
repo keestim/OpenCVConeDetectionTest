@@ -19,10 +19,10 @@ class HSVProcessor(threading.Thread):
         self.fmax_value_H = 360//2
 
         self.flow_H = 0
-        self.flow_S = 0
-        self.flow_V = 25
-        self.fhigh_H = 51
-        self.fhigh_S = 173
+        self.flow_S = 85
+        self.flow_V = 123
+        self.fhigh_H = 53
+        self.fhigh_S = 189
         self.fhigh_V = 255
         
     def run(self):
