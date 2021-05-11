@@ -23,12 +23,9 @@ class HSVProcessor(threading.Thread):
         
     def run(self):
         while True:
-            try:
-                self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.RGB_frame, cv2.COLOR_BGR2HSV)
-                self.fframe_threshold = cv2.inRange(self.fHSV_frame, (self.flow_H, self.flow_S, self.flow_V), (self.fhigh_H, self.fhigh_S, self.fhigh_V))
-                self.fprocesed_frame = self.__processImg(self.fframe_threshold)
-            except:
-                print("HSVProcessor Error")
+            self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.RGB_frame, cv2.COLOR_BGR2HSV)
+            self.fframe_threshold = cv2.inRange(self.fHSV_frame, (self.flow_H, self.flow_S, self.flow_V), (self.fhigh_H, self.fhigh_S, self.fhigh_V))
+            self.fprocesed_frame = self.__processImg(self.fframe_threshold)
 
     def __processImg(self, input_frame):  
         #processing steps: https://imgur.com/a/9Muz1LN
