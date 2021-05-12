@@ -1,3 +1,6 @@
+#https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
+#UI Stuff
+
 from ConeDetector import *
 from HSVProcessor import *
 from time import sleep
@@ -22,8 +25,6 @@ class GUIInformation:
         self.fwindow_detection_name = 'Object Detection'
         self.fwindow_processed_img_name = 'Processed Capture'
         self.fwindow_depth_name = 'Depth Capture'
-
-        #UI Input names
         self.flow_H_name = 'Low H'
         self.flow_S_name = 'Low S'
         self.flow_V_name = 'Low V'

@@ -10,7 +10,6 @@ class ConeDetector(threading.Thread):
         threading.Thread.__init__(self)
         self.fhsv_processor = hsv_processor
         self.fdetected_cone_frame = None
-
         self.fminimum_hull_size = 500
         self.fminimum_contour_size = 20
         self.fminimum_rotated_rect_mean_brightness = 100
@@ -48,10 +47,21 @@ class ConeDetector(threading.Thread):
     def getDetectedConeFrame(self):
         return self.fdetected_cone_frame
 
+
+    
+    def __get_convex_hulls(self, contours):
+        #https://docs.opencv.org/3.4/d7/d1d/tutorial_hull.html
+        hull_list = []
+        for i in range(len(contours)):
+            hull = cv2.convexHull(contours[i])
+            hull_list.append(hull)
+
+        return hull_list
+
+    
     #https://stackoverflow.com/questions/6471023/how-to-calculate-convex-hull-area-using-opencv-functions
     def __getConvexHullArea(self, hull):
         area = 0
-
         for i in  range(len(hull) - 1):
             next_i = (i + 1) % (len(hull))
             dX   = hull[next_i][0][0] - hull[i][0][0]
@@ -68,6 +78,7 @@ class ConeDetector(threading.Thread):
 
         return {'left': left_most, 'right': right_most, 'top': top_most, 'bottom': bottom_most}
 
+    
     def __generateContours(self, ProcessedFrame):
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
         #get edges and then contours from the processed frame

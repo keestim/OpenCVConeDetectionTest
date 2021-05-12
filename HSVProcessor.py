@@ -19,10 +19,10 @@ class HSVProcessor(threading.Thread):
         self.fmax_value_H = 360//2
 
         self.flow_H = 0
-        self.flow_S = 85
-        self.flow_V = 123
-        self.fhigh_H = 53
-        self.fhigh_S = 189
+        self.flow_S = 0
+        self.flow_V = 25
+        self.fhigh_H = 51
+        self.fhigh_S = 173
         self.fhigh_V = 255
         
     def run(self):
@@ -37,6 +37,8 @@ class HSVProcessor(threading.Thread):
                                             (self.fhigh_H, self.fhigh_S, self.fhigh_V))
                 
                 self.fprocesed_frame = self.__processImg(self.fframe_threshold)
+                #except:
+                #    print("HSVProcessor Error")
 
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
@@ -67,38 +69,38 @@ class HSVProcessor(threading.Thread):
     def getMaxValueH(self):
         return self.fmax_value_H
 
-    def getLowH(self):
+    def get_low_H(self):
         return self.flow_H 
 
-    def getLowS(self):
+    def get_low_S(self):
         return self.flow_S 
 
-    def getLowV(self):
+    def get_low_V(self):
         return self.flow_V 
 
-    def getHighH(self):
+    def get_high_H(self):
         return self.fhigh_H 
 
-    def getHighS(self):
+    def get_high_S(self):
         return self.fhigh_S 
 
-    def getHighV(self):
+    def get_high_V(self):
         return self.fhigh_V 
     
-    def setLowH(self, input_value):
+    def set_low_H(self, input_value):
         self.flow_H = input_value 
 
-    def setLowS(self, input_value):
+    def set_low_S(self, input_value):
         self.flow_S = input_value 
 
-    def setLowV(self, input_value):
+    def set_low_V(self, input_value):
         self.flow_V = input_value 
 
-    def setHighH(self, input_value):
+    def set_high_H(self, input_value):
         self.fhigh_H = input_value 
 
-    def setHighS(self, input_value):
+    def set_high_S(self, input_value):
         self.fhigh_S = input_value 
 
-    def setHighV(self, input_value):
+    def set_high_V(self, input_value):
         self.fhigh_V = input_value 
