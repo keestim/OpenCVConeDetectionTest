@@ -13,9 +13,6 @@ class HSVProcessor(threading.Thread):
         self.fframe_threshold = None
         self.fHSV_adjustor_thread = HSVAdjustor
         self.fframe_thread_Lock = frame_thread_Lock
-
-        self.fmax_value = 255
-        self.fmax_value_H = 360//2
         
     def run(self):
         while True:
@@ -32,6 +29,7 @@ class HSVProcessor(threading.Thread):
                                             (self.fHSV_adjustor_thread.get_high_H(), 
                                             self.fHSV_adjustor_thread.get_high_S(), 
                                             self.fHSV_adjustor_thread.get_high_V()))
+                                            
                 self.fprocesed_frame = self.__processImg(self.fframe_threshold)
                 #except:
                 #    print("HSVProcessor Error")
@@ -59,8 +57,4 @@ class HSVProcessor(threading.Thread):
     def get_frame_threshold(self):
         return self.fframe_threshold
 
-    def get_max_value(self):
-        return self.fmax_value
-
-    def get_max_value_H(self):
-        return self.fmax_value_H
+  

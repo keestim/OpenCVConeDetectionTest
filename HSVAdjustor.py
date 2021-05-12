@@ -11,18 +11,49 @@ class HSVAdjustor(threading.Thread):
         self.fhigh_H = 51
         self.fhigh_S = 173
         self.fhigh_V = 255
+
+        self.fmax_value = 255
+        self.fmax_value_H = 360//2
+
         self.fvideo_feed = video_feed
         self.fHSV_frame = None
         self.fframe_threshold = None
+
+        
+
     def run(self):
         while True:
             self.getMeanBrightness()
             sleep(1)
 
     def getMeanBrightness(self):
-        self.fHSV_frame = cv2.cvtColor(self.fvideo_feed.get_RGB_frame(), cv2.COLOR_BGR2HSV)
-        self.fframe_threshold = cv2.inRange(self.fHSV_frame, (self.flow_H, self.flow_S, self.flow_V), (self.fhigh_H, self.fhigh_S, self.fhigh_V))
-        print(cv2.mean(self.fframe_threshold))
+
+        initial_low_H = 0
+        initial_low_S = 0
+        initial_low_V = 0
+        initial_fhigh_H = self.fmax_value_H
+        initial_fhigh_S = self.fmax_value
+        initial_fhigh_V = self.fmax_value
+
+        meanFrameValueArr = []
+        change_step = 5
+        while (True):
+            self.fHSV_frame = cv2.cvtColor(self.fvideo_feed.get_RGB_frame(), cv2.COLOR_BGR2HSV)
+            self.fframe_threshold = cv2.inRange(
+                                    self.fHSV_frame, 
+                                    (initial_low_H, initial_low_S, initial_low_V), 
+                                    (initial_fhigh_H, initial_fhigh_S, initial_fhigh_V))
+            meanVal = cv2.mean(self.fframe_threshold)[0]
+            meanFrameValueArr.append(meanVal)
+            initial_fhigh_H = initial_fhigh_H - change_step
+            
+            if (len(meanFrameValueArr) > 3):
+                print(meanFrameValueArr[len(meanFrameValueArr) - 2])
+                step_diff = float(meanFrameValueArr[len(meanFrameValueArr) - 2]) - float(meanVal)
+                
+                if (step_diff) < 1:
+                    self.fhigh_H = initial_fhigh_H
+                    return
 
     def get_low_H(self):
         return self.flow_H 
@@ -59,3 +90,9 @@ class HSVAdjustor(threading.Thread):
 
     def set_high_V(self, input_value):
         self.fhigh_V = input_value 
+          
+    def get_max_value(self):
+        return self.fmax_value
+
+    def get_max_value_H(self):
+        return self.fmax_value_H

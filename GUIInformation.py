@@ -82,42 +82,42 @@ class GUIInformation:
             self.flow_H_name, 
             self.fwindow_detection_name, 
             self.fHSV_adjustor_thread.get_low_H(), 
-            self.fHSV_processor_thread.get_max_value_H(), 
+            self.fHSV_adjustor_thread.get_max_value_H(), 
             self.__on_low_H_thresh_trackbar)
 
         cv2.createTrackbar(
             self.fhigh_H_name, 
             self.fwindow_detection_name, 
             self.fHSV_adjustor_thread.get_high_H(), 
-            self.fHSV_processor_thread.get_max_value_H(), 
+            self.fHSV_adjustor_thread.get_max_value_H(), 
             self.__on_high_H_thresh_trackbar)
 
         cv2.createTrackbar(
             self.flow_S_name, 
             self.fwindow_detection_name, 
             self.fHSV_adjustor_thread.get_low_S(), 
-            self.fHSV_processor_thread.get_max_value(), 
+            self.fHSV_adjustor_thread.get_max_value(), 
             self.__on_low_S_thresh_trackbar)
 
         cv2.createTrackbar(
             self.fhigh_S_name, 
             self.fwindow_detection_name, 
             self.fHSV_adjustor_thread.get_high_S(), 
-            self.fHSV_processor_thread.get_max_value(), 
+            self.fHSV_adjustor_thread.get_max_value(), 
             self.__on_high_S_thresh_trackbar)
 
         cv2.createTrackbar(
             self.flow_V_name, 
             self.fwindow_detection_name, 
             self.fHSV_adjustor_thread.get_low_V(), 
-            self.fHSV_processor_thread.get_max_value(), 
+            self.fHSV_adjustor_thread.get_max_value(), 
             self.__on_low_V_thresh_trackbar)
 
         cv2.createTrackbar(
             self.fhigh_V_name, 
             self.fwindow_detection_name, 
             self.fHSV_adjustor_thread.get_high_V(), 
-            self.fHSV_processor_thread.get_max_value(), 
+            self.fHSV_adjustor_thread.get_max_value(), 
             self.__on_high_V_thresh_trackbar)
 
     def render_window_frames(self):
