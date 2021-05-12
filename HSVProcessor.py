@@ -8,6 +8,7 @@ class HSVProcessor(threading.Thread):
     def __init__(self, video_thread, frame_thread_Lock):
         threading.Thread.__init__(self)
         self.fvideo_thread = video_thread
+        
         self.fprocesed_frame = None
         self.fHSV_frame = None
         self.fframe_threshold = None
@@ -29,12 +30,13 @@ class HSVProcessor(threading.Thread):
             try:
                 self.fframe_thread_Lock.acquire()
             finally:
-                #try:
-                self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.get_RGB_frame(), cv2.COLOR_BGR2HSV)
-                self.fframe_threshold = cv2.inRange(self.fHSV_frame, (self.flow_H, self.flow_S, self.flow_V), (self.fhigh_H, self.fhigh_S, self.fhigh_V))
+                self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.getRGBFrame(), cv2.COLOR_BGR2HSV)
+                self.fframe_threshold = cv2.inRange(
+                                            self.fHSV_frame, 
+                                            (self.flow_H, self.flow_S, self.flow_V), 
+                                            (self.fhigh_H, self.fhigh_S, self.fhigh_V))
+                
                 self.fprocesed_frame = self.__processImg(self.fframe_threshold)
-                #except:
-                #    print("HSVProcessor Error")
 
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
@@ -47,56 +49,56 @@ class HSVProcessor(threading.Thread):
         
         return cv2.cvtColor(output_img, cv2.COLOR_GRAY2BGR)
 
-    def get_video_thread(self):
+    def getVideoThread(self):
         return self.fvideo_thread
 
-    def get_procesed_frame(self):
+    def getProcesedFrame(self):
         return self.fprocesed_frame 
 
-    def get_HSV_frame(self):
+    def getHSVFrame(self):
         return self.fHSV_frame 
 
-    def get_frame_threshold(self):
+    def getFrameThreshold(self):
         return self.fframe_threshold
 
-    def get_max_value(self):
+    def getMaxValue(self):
         return self.fmax_value
 
-    def get_max_value_H(self):
+    def getMaxValueH(self):
         return self.fmax_value_H
 
-    def get_low_H(self):
+    def getLowH(self):
         return self.flow_H 
 
-    def get_low_S(self):
+    def getLowS(self):
         return self.flow_S 
 
-    def get_low_V(self):
+    def getLowV(self):
         return self.flow_V 
 
-    def get_high_H(self):
+    def getHighH(self):
         return self.fhigh_H 
 
-    def get_high_S(self):
+    def getHighS(self):
         return self.fhigh_S 
 
-    def get_high_V(self):
+    def getHighV(self):
         return self.fhigh_V 
     
-    def set_low_H(self, input_value):
+    def setLowH(self, input_value):
         self.flow_H = input_value 
 
-    def set_low_S(self, input_value):
+    def setLowS(self, input_value):
         self.flow_S = input_value 
 
-    def set_low_V(self, input_value):
+    def setLowV(self, input_value):
         self.flow_V = input_value 
 
-    def set_high_H(self, input_value):
+    def setHighH(self, input_value):
         self.fhigh_H = input_value 
 
-    def set_high_S(self, input_value):
+    def setHighS(self, input_value):
         self.fhigh_S = input_value 
 
-    def set_high_V(self, input_value):
+    def setHighV(self, input_value):
         self.fhigh_V = input_value 

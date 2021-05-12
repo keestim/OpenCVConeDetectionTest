@@ -27,7 +27,7 @@ if __name__ == "__main__":
         try:
             render_frame_lock.acquire()
         finally:
-            GUI_info.render_window_frames()
+            GUI_info.renderWindowFrames()
             render_frame_lock.release()
             sleep(0.01)
 

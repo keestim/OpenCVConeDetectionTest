@@ -10,35 +10,35 @@ class VideoMetaClass(ABCMeta, type(threading.Thread)):
     pass
 
 class VideoSource(ABC, metaclass = VideoMetaClass):
-    def __init__(self, frame_thread_Lock):
+    def __init__(self, frame_thread_lock):
         threading.Thread.__init__(self)
-        self.fRGB_frame = self.get_video()
-        self.fdepth_frame = self.get_depth()
-        self.fframe_thread_Lock = frame_thread_Lock
+        self.fRGB_frame = self.getVideo()
+        self.fdepth_frame = self.getDepth()
+        self.fframe_thread_Lock = frame_thread_lock
 
     def run(self):
         while True:
             try:
                 self.fframe_thread_Lock.acquire()
             finally:
-                self.fRGB_frame = self.get_video()
-                self.fdepth_frame = self.get_depth()
+                self.fRGB_frame = self.getVideo()
+                self.fdepth_frame = self.getDepth()
 
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
 
     @abstractmethod
     #function to get RGB image
-    def get_video(self):
+    def getVideo(self):
         pass
     
     @abstractmethod
     #function to get depth image 
-    def get_depth(self):
+    def getDepth(self):
         pass
 
-    def get_RGB_frame(self):
+    def getRGBFrame(self):
         return self.fRGB_frame
 
-    def get_depth_frame(self):
+    def getDepthFrame(self):
         return self.fdepth_frame
