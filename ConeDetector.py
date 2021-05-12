@@ -156,13 +156,15 @@ class ConeDetector(threading.Thread):
     def __render_valid_convex_hulls(self, ProcessedFrame, ProcessedContours):
         #Although the array isn't current being used, this will be utilized later!
         valid_hulls = []
-
+        t =  0
+        cones = 0
         for c in ProcessedContours:
             hull = cv2.convexHull(c)
             
             if (self.__is_valid_convex_hull(hull, ProcessedFrame)):
-                valid_hulls.append(hull)           
+                valid_hulls.append  (hull)           
                 cv2.drawContours(ProcessedFrame, [hull], 0, (255, 0, 255), 2)
+            
 
         return ProcessedFrame
 
