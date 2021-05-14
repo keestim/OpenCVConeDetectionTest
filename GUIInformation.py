@@ -11,8 +11,8 @@ class GUIInformation:
         self.fvideo_feed_thread = video_feed
         self.frender_frame_lock = render_frame_lock
 
-        self.fHSV_processor_thread = HSVProcessor(self.fvideo_feed_thread, generate_frame_lock)
-        self.fHSV_processor_thread.start()
+        self.fHSV_adjustor_thread = HSVAdjustor(video_feed)
+        self.fHSV_adjustor_thread.start()
 
         self.fHSV_processor_thread = HSVProcessor(
                                         self.fHSV_adjustor_thread, 
@@ -22,7 +22,9 @@ class GUIInformation:
         self.fHSV_processor_thread.start()
         sleep(0.2)
 
-        self.fcone_detector_thread = ConeDetector(self.fHSV_processor_thread, render_frame_lock)
+        self.fcone_detector_thread = ConeDetector(
+                                        self.fHSV_processor_thread,
+                                        render_frame_lock)
         self.fcone_detector_thread.start()
 
         sleep(0.2)
@@ -41,8 +43,8 @@ class GUIInformation:
 
         self.__createUIElements()
 
-    def __onLowHThreshTrackbar(self, val):
-        self.fHSV_adjustor_thread.setLowH(val)
+    def __on_low_H_thresh_trackbar(self, val):
+        self.fHSV_adjustor_thread.set_low_H(val)
         self.fHSV_adjustor_thread.low_H = min(self.fHSV_adjustor_thread.getHighH() - 1, self.fHSV_adjustor_thread.getLowH())
         cv2.setTrackbarPos(self.flow_H_name, self.fwindow_detection_name, self.fHSV_adjustor_thread.getLowH())
 
@@ -59,7 +61,7 @@ class GUIInformation:
     def __onHighSThreshTrackbar(self, val):
         self.fHSV_adjustor_thread.set_high_S(val)
         self.fHSV_adjustor_thread.high_S = max(self.fHSV_adjustor_thread.getHighS(), self.fHSV_adjustor_thread.getLowS() + 1)
-        cv2.setTrackbarPos(self.fhigh_S_name, self.fwindow_detection_name, self.fHSV_adjustor_thread.get_high_S())
+        cv2.setTrackbarPos(self.fhigh_S_name, self.fwindow_detection_name, self.fHSV_adjustor_thread.getHighS())
 
     def __onLowVThreshTrackbar(self, val):
         self.fHSV_adjustor_thread.set_low_V(val)
