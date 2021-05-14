@@ -9,31 +9,28 @@ import numpy as np
 from time import sleep
 
 class ExternalVideoReader(VideoSource, threading.Thread):
-    def __init__(self, fileSrc):
+    def __init__(self, vid_path):
         super(VideoSource, self).__init__()
         threading.Thread.__init__(self)
 
-        self.ffile_src = fileSrc
+        self.cap = cv2.VideoCapture(vid_path)
         self.RGB_frame = self.get_video()
         self.depth_frame = self.get_depth()
 
-        
     def run(self):
         while True:
             self.RGB_frame = self.get_video()
             self.depth_frame = self.get_depth()
 
-    def get_file_src(self):
-        return self.ffile_src
-
     #function to get RGB image from kinect
-    def get_video(self): 
-        #array = cv2.imread(self.ffile_src)
-        #array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
+    def get_video(self):
 
-        img = cv2.VideoCapture(self.ffile_src)
+        ret, frame = self.cap.read()
+        # if frame is read correctly ret is True
 
-        return img
+        print("gg man")
+        frame = cv2.cvtColor(frame,cv2.COLOR_RGB2HSV)
+        return frame
         
     
     #function to get depth image from kinect
