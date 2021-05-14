@@ -13,9 +13,11 @@ class WebcamReader(VideoSource, threading.Thread):
         super(VideoSource, self).__init__()
         threading.Thread.__init__(self)
 
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+
         self.RGB_frame = self.get_video()
         self.depth_frame = self.get_depth()
-        
+
     def run(self):
         while True:
             self.RGB_frame = self.get_video()
@@ -23,12 +25,8 @@ class WebcamReader(VideoSource, threading.Thread):
 
     #function to get RGB image from kinect
     def get_video(self): 
-        #array = cv2.imread(self.ffile_src)
-        #array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
-
-        cap = cv2.VideoCapture(0)
-        frame = cap.read()[1]
-
+        frame = self.cap.read()[1]
+        frame = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
         return frame
         
     
