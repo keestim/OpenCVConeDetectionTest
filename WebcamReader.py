@@ -14,7 +14,6 @@ class WebcamReader(VideoSource, threading.Thread):
         threading.Thread.__init__(self)
 
         self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-
         self.RGB_frame = self.get_video()
         self.depth_frame = self.get_depth()
 
