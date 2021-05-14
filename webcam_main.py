@@ -25,13 +25,12 @@ if __name__ == "__main__":
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-        print("test3")
         GUI_info = GUIInformation(image_thread)
 
         while True:     
             GUI_info.render_window_frames()
 
-            k = cv2.waitKey(5) & 0xFF
+            k = cv2.waitKey(100) & 0xFF
 
             if k == 27:
                 break
