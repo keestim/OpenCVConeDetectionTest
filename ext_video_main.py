@@ -16,7 +16,6 @@ import threading
 import os.path
     
 if __name__ == "__main__":
-        
     try:
         vid_path = sys.argv[1]
         if not os.path.isfile(vid_path):
@@ -25,18 +24,22 @@ if __name__ == "__main__":
         print("Please specify file name. ")
         sys.exit(0)
     finally:
-        video_thread = ExternalVideoReader(vid_path)
-        video_thread.start()
-    
-    sleep(0.5)
+        while(True):
+            video_thread = ExternalVideoReader(vid_path)
+            video_thread.start()
+            print("yeet")
+            
+            sleep(0.5)
+            
+            GUI_info = GUIInformation(video_thread)
 
-    GUI_info = GUIInformation(video_thread)
+            while True:     
+                GUI_info.render_window_frames()
 
-    while True:     
-        GUI_info.render_window_frames()
+                k = cv2.waitKey(27)
 
-        k = cv2.waitKey(5) & 0xFF
+                if k == 27 & 0xFF == ord('q'):
+                    break
 
-        if k == 27:
-            break
-    cv2.destroyAllWindows()
+            video_thread.release()
+            cv2.destroyAllWindows()

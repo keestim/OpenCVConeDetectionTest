@@ -1,20 +1,23 @@
 import numpy as np
-import cv2
+import cv2 as cv2
 
-cap = cv2.VideoCapture(0)
+while True:
+    cap = cv2.VideoCapture('Presentation.mp4')
+    repeat=0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        # if frame is read correctly ret is True
+        if not ret:
+            break
 
-while(True):
-    # Capture frame-by-frame
-    ret, frame = cap.read()
+        cv2.imshow('Video Playback', cv2.cvtColor(frame, cv2.COLOR_RGB2HSV))
 
-    # Our operations on the frame come here
-    #gray = cv2.cvtColor(frame)
-
-    # Display the resulting frame
-    cv2.imshow('Webcam Video Output',frame )
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(27) & 0xFF == ord('q'):
+            repeat=1
+            break
+        
+    if repeat:
         break
 
-# When everything done, release the capture
 cap.release()
 cv2.destroyAllWindows()
