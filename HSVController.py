@@ -28,6 +28,7 @@ class HSVController(threading.Thread):
         self.fHSV_frame = None
         self.fframe_threshold = None
 
+
         
     def filterActiveAdjustorThreads(self, adjustorThread):
         return adjustorThread.getfinishProcessing()
@@ -39,11 +40,13 @@ class HSVController(threading.Thread):
             self.getMeanBrightness()
             sleep(1)
         '''
+        for HSVAdjustor in self.fHSVprocessors:
+            HSVAdjustor.start()
 
         while True:
             activeThreads = filter(self.fHSVprocessors,self.filterActiveAdjustorThreads)
             
-            if len(activeThreads) = 0:
+            if len(activeThreads) == 0:
                 for adjustorThread in self.fHSVprocessors:
                     if adjustorThread.getDecreasingAdjustor():
                         highHSVvalues = [self.fhigh_H,self.fhigh_S,self.fhigh_V]
@@ -69,36 +72,7 @@ class HSVController(threading.Thread):
             HSVIndex = 2
         currentHSVValues[HSVIndex] = HSVAdjustor.getThreshholdValue()
 
-    def getMeanBrightness(self):
-
-        initial_low_H = 0
-        initial_low_S = 0
-        initial_low_V = 0
-        initial_fhigh_H = self.fmax_value_H
-        initial_fhigh_S = self.fmax_value
-        initial_fhigh_V = self.fmax_value
-
-        meanFrameValueArr = []
-        change_step = 5
-        while (True):
-            self.fHSV_frame = cv2.cvtColor(self.fvideo_feed.get_RGB_frame(), cv2.COLOR_BGR2HSV)
-            self.fframe_threshold = cv2.inRange(
-                                    self.fHSV_frame, 
-                                    (initial_low_H, initial_low_S, initial_low_V), 
-                                    (initial_fhigh_H, initial_fhigh_S, initial_fhigh_V))
-            meanVal = cv2.mean(self.fframe_threshold)[0]
-            meanFrameValueArr.append(meanVal)
-            initial_fhigh_H = initial_fhigh_H - change_step
-
-            
-            if (len(meanFrameValueArr) > 3):
-                print(meanFrameValueArr[len(meanFrameValueArr) - 2])
-                step_diff = float(meanFrameValueArr[len(meanFrameValueArr) - 2]) - float(meanVal)
-                
-                if (step_diff) < 1:
-                    self.fhigh_H = initial_fhigh_H
-                    return
-
+    
     def get_low_H(self):
         return self.flow_H 
 
