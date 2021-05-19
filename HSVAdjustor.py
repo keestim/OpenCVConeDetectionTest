@@ -1,12 +1,13 @@
 from abc import ABC, ABCMeta, abstractmethod
 import threading
 from time import sleep
+import cv2
 
 class HSVMetaClass(ABCMeta, type(threading.Thread)):
     pass
 
 class HSVAdjustor(ABC, metaclass = HSVMetaClass):
-    def __init__(self, decreasingAdjustor = True):
+    def __init__(self, video_feed, decreasingAdjustor = True):
         self.fdecreasingAdjustor = decreasingAdjustor
         self.ffinishProcessing = False
 
@@ -18,10 +19,16 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
         self.fhigh_V = 255
 
         self.fmax_value = 255
+        self.fmax_value_H = 180
         
         self.fpreviousValues = []
 
         self.fThreshholdValue = 0
+
+        self.fTempMinHSV = []
+        self.fTempMaxHSV = []
+
+        self.fvideo_feed = video_feed
 
     def getThreshholdValue(self):
         return self.fThreshholdValue
@@ -29,59 +36,66 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
     def getfinishProcessing(self):
         return self.ffinishProcessing
 
-    def run(self)
+    def run(self):
+        self.resetValues()
+
         while (True):
             if (not self.ffinishProcessing):
                 self.getMeanBrightness()
-                sleep(1)
                
     def getMeanBrightness(self):
-        #convert to array
-        initial_low_H = 0
-        initial_low_S = 0
-        initial_low_V = 0
-        initial_fhigh_H = self.fmax_value_H
-        initial_fhigh_S = self.fmax_value
-        initial_fhigh_V = self.fmax_value
-
         meanFrameValueArr = []
         change_step = 5
         while (True):
             self.fHSV_frame = cv2.cvtColor(self.fvideo_feed.get_RGB_frame(), cv2.COLOR_BGR2HSV)
+
+
             self.fframe_threshold = cv2.inRange(
                                     self.fHSV_frame, 
-                                    (initial_low_H, initial_low_S, initial_low_V), 
-                                    (initial_fhigh_H, initial_fhigh_S, initial_fhigh_V))
+                                    (self.fTempMinHSV[0], self.fTempMinHSV[1], self.fTempMinHSV[2]), 
+                                    (self.fTempMaxHSV[0], self.fTempMaxHSV[1], self.fTempMaxHSV[2]))
             meanVal = cv2.mean(self.fframe_threshold)[0]
             meanFrameValueArr.append(meanVal)
-            initial_fhigh_H = initial_fhigh_H - change_step
-
             
+            self.decreaseTempThreshold()
+
             if (len(meanFrameValueArr) > 3):
-                print(meanFrameValueArr[len(meanFrameValueArr) - 2])
                 step_diff = float(meanFrameValueArr[len(meanFrameValueArr) - 2]) - float(meanVal)
                 
                 if (step_diff) < 1:
-                    self.updateValue(initial_fhigh_H)
+                    self.updateValue()
+                    self.ffinishProcessing = True
+                    
                     return
-
 
     def getDecreasingAdjustor(self):
         return self.fdecreasingAdjustor
+        
+    def getFinalHighHSVArray(self):
+        return [self.fhigh_H, self.fhigh_S, self.fhigh_V]
 
+    def getFinalLowHSVArray(self):
+        return [self.flow_H, self.flow_S, self.flow_V]
     #decrease temp threshold
     #decrease appropiate threshold value, by pre-set increment
     #takes in array, modifies array, outputs array
 
     @abstractmethod
-    def decreaseTempThreshold(self,)
+    #adjust array!
+    def decreaseTempThreshold(self):
+        pass
+
     @abstractmethod
-    def updateValue(self, newValue):
+    def updateValue(self):
         pass
 
     def resetValues(self):
         self.ffinishProcessing = False
         self.fpreviousValues = []
+        self.fTempMinHSV = [0, 0, 0]
+        self.fTempMaxHSV = [self.fmax_value_H, self.fmax_value, self.fmax_value]
+
+        
 
 
             
