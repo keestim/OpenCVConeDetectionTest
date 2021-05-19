@@ -22,53 +22,51 @@ class HSVController(threading.Thread):
         self.fvideo_feed = video_feed
         self.fHSVprocessors = []
 
-        self.fHSVprocessors.append(HueAdjustor(True))
-        self.fHSVprocessors.append(SaturationAdjustor(True))
+        self.fHSVprocessors.append(HueAdjustor(video_feed, True))
+        self.fHSVprocessors.append(SaturationAdjustor(video_feed, True))
+        self.fHSVprocessors.append(ValueAdjustor(video_feed, True))
+        self.fHSVprocessors.append(HueAdjustor(video_feed, False))
+        self.fHSVprocessors.append(SaturationAdjustor(video_feed, False))
+        self.fHSVprocessors.append(ValueAdjustor(video_feed, False))
 
         self.fHSV_frame = None
         self.fframe_threshold = None
-
-
         
     def filterActiveAdjustorThreads(self, adjustorThread):
         return adjustorThread.getfinishProcessing()
 
-
     def run(self):
-        '''
-        while True:
-            self.getMeanBrightness()
-            sleep(1)
-        '''
         for HSVAdjustor in self.fHSVprocessors:
             HSVAdjustor.start()
 
         while True:
-            activeThreads = filter(self.fHSVprocessors,self.filterActiveAdjustorThreads)
+            if len(self.fHSVprocessors) > 0:
+                activeThreads = filter(self.filterActiveAdjustorThreads, self.fHSVprocessors)
             
-            if len(activeThreads) == 0:
-                for adjustorThread in self.fHSVprocessors:
+                for adjustorThread in activeThreads:
                     if adjustorThread.getDecreasingAdjustor():
                         highHSVvalues = [self.fhigh_H,self.fhigh_S,self.fhigh_V]
-                        highHSVvalues = updateValue(adjustorThread, highHSVvalues)
+
+                        highHSVvalues = adjustorThread.getFinalHighHSVArray()
                         self.fhigh_H = highHSVvalues[0]
                         self.fhigh_S = highHSVvalues[1]
                         self.fhigh_V = highHSVvalues[2]
                     else:
                         lowHSVvalues = [self.flow_H,self.flow_S,self.flow_V]
-                        lowHSVvalues = updateValue(adjustorThread, lowHSVvalues)
+
+                        lowHSVvalues = adjustorThread.getFinalLowHSVArray()
                         self.flow_H = lowHSVvalues[0]
-                        self.flow_S = lowhHSVvalues[1]
+                        self.flow_S = lowHSVvalues[1]
                         self.flow_V = lowHSVvalues[2]
 
                     adjustorThread.resetValues()                        
 
     def assignHSVValue(self, HSVAdjustor, currentHSVValues):
-        if type(HSVAdjustor) == HueAdjustor
+        if type(HSVAdjustor) == HueAdjustor:
             HSVIndex = 0
-        else if type(HSVAdjustor) == SaturationAdjustor
+        elif type(HSVAdjustor) == SaturationAdjustor:
             HSVIndex = 1
-        else if type(HSVAdjustor) == ValueAdjustor
+        elif type(HSVAdjustor) == ValueAdjustor:
             HSVIndex = 2
         currentHSVValues[HSVIndex] = HSVAdjustor.getThreshholdValue()
 
