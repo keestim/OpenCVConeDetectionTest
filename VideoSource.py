@@ -1,5 +1,6 @@
 from abc import ABC, ABCMeta, abstractmethod
 import threading
+from time import sleep
 
 #see: https://docs.python.org/3/library/abc.html
 #https://stackoverflow.com/questions/28799089/python-abc-multiple-inheritance
@@ -9,22 +10,35 @@ class VideoMetaClass(ABCMeta, type(threading.Thread)):
     pass
 
 class VideoSource(ABC, metaclass = VideoMetaClass):
-    def __init__(self):
+    def __init__(self, frame_thread_lock):
         threading.Thread.__init__(self)
-        self.RGB_frame = self.get_video()
-        self.depth_frame = self.get_depth()
+        self.fRGB_frame = self.getVideo()
+        self.fdepth_frame = self.getDepth()
+        self.fframe_thread_Lock = frame_thread_lock
 
     def run(self):
         while True:
-            self.RGB_frame = self.get_video()
-            self.depth_frame = self.get_depth()
+            try:
+                self.fframe_thread_Lock.acquire()
+            finally:
+                self.fRGB_frame = self.getVideo()
+                self.fdepth_frame = self.getDepth()
+
+                self.fframe_thread_Lock.release()
+                sleep(0.01)
 
     @abstractmethod
     #function to get RGB image
-    def get_video(self):
+    def getVideo(self):
         pass
     
     @abstractmethod
     #function to get depth image 
-    def get_depth(self):
+    def getDepth(self):
         pass
+
+    def getRGBFrame(self):
+        return self.fRGB_frame
+
+    def getDepthFrame(self):
+        return self.fdepth_frame
