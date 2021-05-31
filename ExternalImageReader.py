@@ -14,20 +14,20 @@ class ExternalImageReader(VideoSource, threading.Thread):
         threading.Thread.__init__(self)
 
         self.ffile_src = fileSrc
-        self.RGB_frame = self.get_video()
-        self.depth_frame = self.get_depth()
+        self.fRGB_frame = self.getVideo()
+        self.fdepth_frame = self.getDepth()
 
         
     def run(self):
         while True:
-            self.RGB_frame = self.get_video()
-            self.depth_frame = self.get_depth()
+            self.fRGB_frame = self.getVideo()
+            self.fdepth_frame = self.getDepth()
 
     def get_file_src(self):
         return self.ffile_src
 
     #function to get RGB image from kinect
-    def get_video(self): 
+    def getVideo(self): 
         #array = cv2.imread(self.ffile_src)
         #array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
 
@@ -37,7 +37,7 @@ class ExternalImageReader(VideoSource, threading.Thread):
         
     
     #function to get depth image from kinect
-    def get_depth(self):
+    def getDepth(self):
         #array,_ = freenect.sync_get_depth()
         #array = array.astype(np.uint8)
         sleep(1)

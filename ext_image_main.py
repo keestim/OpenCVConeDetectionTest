@@ -16,6 +16,9 @@ import threading
 import os.path
     
 if __name__ == "__main__":
+    render_frame_lock = threading.Lock()
+    generate_frame_lock = threading.Lock()
+
     try:
         img_path = sys.argv[1]
         if not os.path.isfile(img_path):
@@ -29,10 +32,10 @@ if __name__ == "__main__":
     
     sleep(0.5)
 
-    GUI_info = GUIInformation(image_thread)
+    GUI_info = GUIInformation(image_thread, generate_frame_lock, render_frame_lock)
 
     while True:     
-        GUI_info.render_window_frames()
+        GUI_info.renderWindowFrames()
 
         k = cv2.waitKey(5) & 0xFF
 

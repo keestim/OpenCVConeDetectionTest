@@ -12,7 +12,7 @@ class KinectVideoReader(VideoSource, threading.Thread):
         threading.Thread.__init__(self)
         
     #function to get RGB image from kinect
-    def get_video(self): 
+    def getVideo(self): 
         array,_ = freenect.sync_get_video()
         array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
         return array
