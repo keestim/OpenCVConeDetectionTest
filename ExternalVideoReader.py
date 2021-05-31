@@ -26,8 +26,7 @@ class ExternalVideoReader(VideoSource, threading.Thread):
     def getVideo(self):
         ret, frame = self.cap.read()
         # if frame is read correctly ret is True
-
-        print("gg man")
+        
         frame = cv2.cvtColor(frame,cv2.COLOR_RGB2HSV)
         return frame
         
