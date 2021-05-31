@@ -16,8 +16,7 @@ class ExternalImageReader(VideoSource, threading.Thread):
         self.ffile_src = fileSrc
         self.fRGB_frame = self.getVideo()
         self.fdepth_frame = self.getDepth()
-
-        
+   
     def run(self):
         while True:
             self.fRGB_frame = self.getVideo()

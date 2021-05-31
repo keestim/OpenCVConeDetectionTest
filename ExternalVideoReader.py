@@ -6,6 +6,7 @@ import cv2
 import sys
 import numpy as np
 from time import sleep
+import time
 
 class ExternalVideoReader(VideoSource, threading.Thread):
     def __init__(self, vid_path):
@@ -13,8 +14,10 @@ class ExternalVideoReader(VideoSource, threading.Thread):
         threading.Thread.__init__(self)
 
         self.fframe_counter = 0
-        self.cap = cv2.VideoCapture(vid_path)
+        self.flast_frame_time = time.time()
 
+        self.cap = cv2.VideoCapture(vid_path)
+        self.fvideo_frame_rate = self.cap.get(cv2.CAP_PROP_FPS)
         self.ftotal_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
         self.fRGB_frame = self.getVideo()
@@ -29,25 +32,28 @@ class ExternalVideoReader(VideoSource, threading.Thread):
     #function to get RGB image from external video file
     #https://www.programcreek.com/python/example/85663/cv2.VideoCapture
     def getVideo(self):
-        success, frame = self.cap.read()
+        if (((time.time() - self.flast_frame_time) >= (1/self.fvideo_frame_rate)) or (self.fRGB_frame is None)):
+            success, frame = self.cap.read()
 
-        #returns frame too fast!
+            self.flast_frame_time = time.time()
 
-        if success:
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
-            self.fframe_counter += 1
+            if success:
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+                self.fframe_counter += 1
 
-            return frame
+                return frame
+            else:
+                print("Can't receive frame (stream end?).")   
+
+                if (self.fframe_counter >= (self.ftotal_frames - 1)):
+                    print("Attempting to reset video")
+                    self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    self.fframe_counter = 0
+
+                    return self.fRGB_frame
         else:
-            print("Can't receive frame (stream end?).")   
+            return self.fRGB_frame
 
-            if (self.fframe_counter >= (self.ftotal_frames - 1)):
-                print("Attempting to reset video")
-                self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                self.fframe_counter = 0
-
-                return self.fRGB_frame
-    
     #function to get depth image from external video file
     def getDepth(self):
         #array,_ = freenect.sync_get_depth()
