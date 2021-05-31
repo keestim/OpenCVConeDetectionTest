@@ -72,6 +72,7 @@ class ConeDetector(threading.Thread):
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
         #get edges and then contours from the processed frame
         edge = cv2.Canny(ProcessedFrame, 30, 200)
+        
         contours, h = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
