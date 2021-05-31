@@ -1,6 +1,3 @@
-#theory from: 
-#https://raw.githubusercontent.com/MicrocontrollersAndMore/Traffic_Cone_Detection_Visual_Basic/master/presentation/Steps%20With%20Images.pdf
-
 from ExternalImageReader import *
 from GUIInformation import *
 

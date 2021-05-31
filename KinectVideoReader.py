@@ -13,8 +13,8 @@ class KinectVideoReader(VideoSource, threading.Thread):
         
     #function to get RGB image from kinect
     def getVideo(self): 
-        array,_ = freenect.sync_get_video()
-        array = cv2.cvtColor(array,cv2.COLOR_BGR2HSV)
+        array = freenect.sync_get_video()[0]
+        array = cv2.cvtColor(array, cv2.COLOR_BGR2HSV)
         return array
     
     #function to get depth image from kinect
