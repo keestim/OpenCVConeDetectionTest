@@ -5,7 +5,6 @@ import threading
 import cv2
 import sys
 import numpy as np
-
 from time import sleep
 
 class ExternalVideoReader(VideoSource, threading.Thread):
@@ -40,13 +39,13 @@ class ExternalVideoReader(VideoSource, threading.Thread):
 
             return frame
         else:
-            print("Can't receive frame (stream end?). Exiting ...")   
+            print("Can't receive frame (stream end?).")   
 
             if (self.fframe_counter >= (self.ftotal_frames - 1)):
                 print("Attempting to reset video")
                 self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 self.fframe_counter = 0
-                
+
                 return self.fRGB_frame
     
     #function to get depth image from external video file
