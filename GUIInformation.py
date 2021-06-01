@@ -141,9 +141,11 @@ class GUIInformation:
             self.fHSV_processor_thread.getMaxValue(), 
             self.__onHighVThreshTrackbar)
 
-    def renderWindowFrames(self):
-        cv2.imshow(self.fwindow_depth_name, self.fvideo_feed_thread.getDepthFrame())    
+    def renderWindowFrames(self):  
         cv2.imshow(self.fwindow_capture_name, self.fvideo_feed_thread.getRGBFrame())        
         cv2.imshow(self.fwindow_detection_name, self.fHSV_processor_thread.getFrameThreshold())
-        cv2.imshow(self.fwindow_processed_img_name, self.fcone_detector_thread.getDetectedConeFrame())        
-        
+        cv2.imshow(self.fwindow_processed_img_name, self.fcone_detector_thread.getDetectedConeFrame())       
+
+        if (self.fvideo_feed_thread.getDepthFrame() is not None):
+            cv2.imshow(self.fwindow_depth_name, self.fvideo_feed_thread.getDepthFrame())   
+
