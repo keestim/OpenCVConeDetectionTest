@@ -3,7 +3,7 @@
 
 from ConeDetector import *
 from HSVProcessor import *
-from HSVAdjustor import *
+from HSVController import *
 from time import sleep
 
 class GUIInformation:
@@ -11,11 +11,11 @@ class GUIInformation:
         self.fvideo_feed_thread = video_feed
         self.frender_frame_lock = render_frame_lock
 
-        self.fHSV_adjustor_thread = HSVAdjustor(video_feed)
-        self.fHSV_adjustor_thread.start()
+        self.fHSV_controller_thread = HSVController(video_feed)
+        self.fHSV_controller_thread.start()
 
         self.fHSV_processor_thread = HSVProcessor(
-                                        self.fHSV_adjustor_thread, 
+                                        self.fHSV_controller_thread, 
                                         self.fvideo_feed_thread, 
                                         generate_frame_lock)
 

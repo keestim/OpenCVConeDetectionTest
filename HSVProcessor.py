@@ -64,4 +64,3 @@ class HSVProcessor(threading.Thread):
 
     def getMaxValueH(self):
         return self.fmax_value_H
-
