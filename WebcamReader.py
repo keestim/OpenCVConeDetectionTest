@@ -1,12 +1,7 @@
 from VideoSource import *
-from abc import ABC, abstractmethod
 
 import threading
 import cv2
-import sys
-import numpy as np
-
-from time import sleep
 
 class WebcamReader(VideoSource, threading.Thread):
     def __init__(self):

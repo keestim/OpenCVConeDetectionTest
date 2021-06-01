@@ -1,28 +1,29 @@
 from VideoSource import *
-from abc import ABC, abstractmethod
 
 import threading
 import cv2
-import sys
-import numpy as np
-from time import sleep
 import time
 
 class ExternalVideoReader(VideoSource, threading.Thread):
-    def __init__(self, vid_path):
-        super(VideoSource, self).__init__()
-        threading.Thread.__init__(self)
+    def __init__(self, frame_thread_Lock, file_src):
+        self.ffile_src = file_src
 
         self.fframe_counter = 0
         self.flast_frame_time = time.time()
 
-        self.fvideo_capture = cv2.VideoCapture(vid_path)
+        self.fvideo_capture = cv2.VideoCapture(self.ffile_src)
         self.fvideo_frame_rate = self.fvideo_capture.get(cv2.CAP_PROP_FPS)
         self.ftotal_frames = self.fvideo_capture.get(cv2.CAP_PROP_FRAME_COUNT)
 
+        VideoSource.__init__(self, frame_thread_Lock)
+        threading.Thread.__init__(self)
+
         self.fRGB_frame = self.getVideo()
         self.fdepth_frame = self.getDepth()
-        
+
+    def getFileSrc(self):
+        return self.ffile_src
+    
     def run(self):
         while self.fvideo_capture.isOpened():
             self.fRGB_frame = self.getVideo()

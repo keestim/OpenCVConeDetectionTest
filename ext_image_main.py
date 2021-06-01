@@ -1,14 +1,9 @@
 from ExternalImageReader import *
 from GUIInformation import *
 
-from abc import ABC, abstractmethod
-
 import cv2
 import sys
-import numpy as np
-import time
 from time import sleep
-from enum import Enum 
 import threading
 import os.path
     
@@ -17,14 +12,14 @@ if __name__ == "__main__":
     generate_frame_lock = threading.Lock()
 
     try:
-        img_path = sys.argv[1]
-        if not os.path.isfile(img_path):
+        input_image_path = sys.argv[1]
+        if not os.path.isfile(input_image_path):
             raise Exception("file doesn't exist or bad file name")
     except:
         print("Please specify file name. ")
         sys.exit(0)
     finally:
-        image_thread = ExternalImageReader(img_path)
+        image_thread = ExternalImageReader(generate_frame_lock, input_image_path)
         image_thread.start()
     
     sleep(0.5)

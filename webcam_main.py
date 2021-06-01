@@ -1,16 +1,8 @@
 from WebcamReader import *
 from GUIInformation import *
 
-from abc import ABC, abstractmethod
-
 import cv2
-import sys
-import numpy as np
-import time
-from time import sleep
-from enum import Enum 
 import threading
-import os.path
     
 if __name__ == "__main__":
     render_frame_lock = threading.Lock()
