@@ -1,14 +1,13 @@
 import threading
-import cv2
 from HueAdjustor import *
 from SaturationAdjustor import *
 from ValueAdjustor import *
-from time import sleep
 
 class HSVController(threading.Thread):
     def __init__(self, video_feed):
-       
         super().__init__()
+
+        #TODO Remove these default values!
         self.flow_H = 0
         self.flow_S = 0
         self.flow_V = 25
@@ -20,95 +19,96 @@ class HSVController(threading.Thread):
         self.fmax_value_H = 360//2
 
         self.fvideo_feed = video_feed
-        self.fHSVprocessors = []
+        self.fHSV_processors = []
 
-        self.fHSVprocessors.append(HueAdjustor(video_feed, True))
-        self.fHSVprocessors.append(SaturationAdjustor(video_feed, True))
-        self.fHSVprocessors.append(ValueAdjustor(video_feed, True))
-        self.fHSVprocessors.append(HueAdjustor(video_feed, False))
-        self.fHSVprocessors.append(SaturationAdjustor(video_feed, False))
-        self.fHSVprocessors.append(ValueAdjustor(video_feed, False))
+        self.fHSV_processors.append(HueAdjustor(video_feed, True))
+        self.fHSV_processors.append(SaturationAdjustor(video_feed, True))
+        self.fHSV_processors.append(ValueAdjustor(video_feed, True))
+        self.fHSV_processors.append(HueAdjustor(video_feed, False))
+        self.fHSV_processors.append(SaturationAdjustor(video_feed, False))
+        self.fHSV_processors.append(ValueAdjustor(video_feed, False))
 
         self.fHSV_frame = None
         self.fframe_threshold = None
         
-    def filterActiveAdjustorThreads(self, adjustorThread):
-        return adjustorThread.getfinishProcessing()
+    def filterActiveAdjustorThreads(self, adjustor_thread):
+        return adjustor_thread.getfinishProcessing()
 
     def run(self):
-        for HSVAdjustor in self.fHSVprocessors:
-            HSVAdjustor.start()
+        for HSV_adjustor in self.fHSV_processors:
+            HSV_adjustor.start()
 
         while True:
-            if len(self.fHSVprocessors) > 0:
-                activeThreads = filter(self.filterActiveAdjustorThreads, self.fHSVprocessors)
+            if len(self.fHSV_processors) > 0:
+                active_threads = filter(self.filterActiveAdjustorThreads, 
+                                        self.fHSV_processors)
             
-                for adjustorThread in activeThreads:
-                    if adjustorThread.getDecreasingAdjustor():
-                        highHSVvalues = [self.fhigh_H,self.fhigh_S,self.fhigh_V]
+                for adjustor_thread in active_threads:
+                    if adjustor_thread.getDecreasingAdjustor():
+                        high_HSV_values = [self.fhigh_H, self.fhigh_S, self.fhigh_V]
 
-                        highHSVvalues = adjustorThread.getFinalHighHSVArray()
-                        self.fhigh_H = highHSVvalues[0]
-                        self.fhigh_S = highHSVvalues[1]
-                        self.fhigh_V = highHSVvalues[2]
+                        high_HSV_values = adjustor_thread.getFinalHighHSVArray()
+                        self.fhigh_H = high_HSV_values[HSVType.Hue]
+                        self.fhigh_S = high_HSV_values[HSVType.Saturation]
+                        self.fhigh_V = high_HSV_values[HSVType.Value]
                     else:
-                        lowHSVvalues = [self.flow_H,self.flow_S,self.flow_V]
+                        low_HSV_values = [self.flow_H, self.flow_S, self.flow_V]
 
-                        lowHSVvalues = adjustorThread.getFinalLowHSVArray()
-                        self.flow_H = lowHSVvalues[0]
-                        self.flow_S = lowHSVvalues[1]
-                        self.flow_V = lowHSVvalues[2]
+                        low_HSV_values = adjustor_thread.getFinalLowHSVArray()
+                        self.flow_H = low_HSV_values[HSVType.Hue]
+                        self.flow_S = low_HSV_values[HSVType.Saturation]
+                        self.flow_V = low_HSV_values[HSVType.Value]
 
-                    adjustorThread.resetValues()                        
+                    adjustor_thread.resetValues()                        
 
-    def assignHSVValue(self, HSVAdjustor, currentHSVValues):
-        if type(HSVAdjustor) == HueAdjustor:
-            HSVIndex = 0
-        elif type(HSVAdjustor) == SaturationAdjustor:
-            HSVIndex = 1
-        elif type(HSVAdjustor) == ValueAdjustor:
-            HSVIndex = 2
-        currentHSVValues[HSVIndex] = HSVAdjustor.getThreshholdValue()
+    def assignHSVValue(self, HSV_adjustor, current_HSV_values):
+        if type(HSV_adjustor) == HueAdjustor:
+            HSV_index = HSVType.Hue
+        elif type(HSV_adjustor) == SaturationAdjustor:
+            HSV_index = HSVType.Saturation
+        elif type(HSV_adjustor) == ValueAdjustor:
+            HSV_index = HSVType.Value
+        
+        current_HSV_values[HSV_index] = HSV_adjustor.getThreshholdValue()
 
-    
-    def get_low_H(self):
+    def getLowH(self):
         return self.flow_H 
 
-    def get_low_S(self):
+    def getLowS(self):
         return self.flow_S 
 
-    def get_low_V(self):
+    def getLowV(self):
         return self.flow_V 
 
-    def get_high_H(self):
+    def getHighH(self):
         return self.fhigh_H 
 
-    def get_high_S(self):
+    def getHighS(self):
         return self.fhigh_S 
 
-    def get_high_V(self):
+    def getHighV(self):
         return self.fhigh_V 
     
-    def set_low_H(self, input_value):
+    def setLowH(self, input_value):
         self.flow_H = input_value 
 
-    def set_low_S(self, input_value):
+    def setLowS(self, input_value):
         self.flow_S = input_value 
 
-    def set_low_V(self, input_value):
+    def setLowV(self, input_value):
         self.flow_V = input_value 
 
-    def set_high_H(self, input_value):
+    def setHighH(self, input_value):
         self.fhigh_H = input_value 
 
-    def set_high_S(self, input_value):
+    def setHighS(self, input_value):
         self.fhigh_S = input_value 
 
-    def set_high_V(self, input_value):
+    def setHighV(self, input_value):
         self.fhigh_V = input_value 
           
-    def get_max_value(self):
+    def getMaxValue(self):
         return self.fmax_value
 
-    def get_max_value_H(self):
+    def getMaxValueH(self):
         return self.fmax_value_H

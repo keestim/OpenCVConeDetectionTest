@@ -5,6 +5,8 @@ import random as rng
 import math
 from time import sleep
 import copy
+
+#TODO fix "magic numbers" have these come from actual variables, not just raw values sitting in code!
 class ConeDetector(threading.Thread):
     def __init__(self, hsv_processor, frame_thread_Lock):
         threading.Thread.__init__(self)
@@ -47,8 +49,6 @@ class ConeDetector(threading.Thread):
     def getDetectedConeFrame(self):
         return self.fdetected_cone_frame
 
-
-    
     def __get_convex_hulls(self, contours):
         #https://docs.opencv.org/3.4/d7/d1d/tutorial_hull.html
         hull_list = []
@@ -58,7 +58,6 @@ class ConeDetector(threading.Thread):
 
         return hull_list
 
-    
     #https://stackoverflow.com/questions/6471023/how-to-calculate-convex-hull-area-using-opencv-functions
     def __getConvexHullArea(self, hull):
         area = 0
@@ -78,7 +77,6 @@ class ConeDetector(threading.Thread):
 
         return {'left': left_most, 'right': right_most, 'top': top_most, 'bottom': bottom_most}
 
-    
     def __generateContours(self, ProcessedFrame):
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
         #get edges and then contours from the processed frame
@@ -169,7 +167,6 @@ class ConeDetector(threading.Thread):
             if (self.__isValidConvexHull(hull, ProcessedFrame)):
                 valid_hulls.append(hull)           
                 cv2.drawContours(ProcessedFrame, [hull], 0, (255, 0, 255), 2)
-            
 
         return ProcessedFrame
 
