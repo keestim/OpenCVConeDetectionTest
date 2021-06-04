@@ -12,8 +12,8 @@ class ConeDetector(threading.Thread):
         threading.Thread.__init__(self)
         self.fhsv_processor = hsv_processor
         self.fdetected_cone_frame = None
-        self.fminimum_hull_size = 500
-        self.fminimum_contour_size = 20
+        self.fminimum_hull_size = 250
+        self.fminimum_contour_size = 10
         self.fminimum_rotated_rect_mean_brightness = 100
 
         self.fframe_thread_Lock = frame_thread_Lock

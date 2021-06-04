@@ -9,6 +9,8 @@ class HueAdjustor(HSVAdjustor, threading.Thread):
         
         threading.Thread.__init__(self)
         self.fmax_value = MAX_HUE_VALUE
+
+        self.fadjustor_name = "Hue " + self.getAdjustorDirectionText()
     
     def decreaseSpecifiedThresholdValue(self):
         if self.isAdjustorDecreasing:

@@ -4,7 +4,6 @@
 from ConeDetector import *
 from HSVProcessor import *
 from HSVController import *
-from HSVController import * 
 from time import sleep
 
 class GUIInformation:

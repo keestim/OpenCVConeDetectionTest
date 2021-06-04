@@ -8,6 +8,8 @@ class ValueAdjustor(HSVAdjustor, threading.Thread):
                             decreasing_adjustor)
         
         threading.Thread.__init__(self)
+
+        self.fadjustor_name = "Value " + self.getAdjustorDirectionText()
        
     def decreaseSpecifiedThresholdValue(self):
         if self.isAdjustorDecreasing:

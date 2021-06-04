@@ -33,7 +33,8 @@ class HSVController(threading.Thread):
         self.fHSV_processors.append(SaturationAdjustor(video_feed, 
                                                         self.fshared_adjustor_condition_var,
                                                         HSVAdjustorMode.Decreasing))
-
+        
+        '''
         self.fHSV_processors.append(ValueAdjustor(video_feed, 
                                                     self.fshared_adjustor_condition_var, 
                                                     HSVAdjustorMode.Increasing))
@@ -41,6 +42,7 @@ class HSVController(threading.Thread):
         self.fHSV_processors.append(ValueAdjustor(video_feed, 
                                                     self.fshared_adjustor_condition_var, 
                                                     HSVAdjustorMode.Decreasing))
+        '''
 
         self.fHSV_frame = None
         self.fframe_threshold = None

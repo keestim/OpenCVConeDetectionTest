@@ -9,6 +9,8 @@ class SaturationAdjustor(HSVAdjustor, threading.Thread):
         
         threading.Thread.__init__(self)
 
+        self.fadjustor_name = "Saturation " + self.getAdjustorDirectionText()
+
     def decreaseSpecifiedThresholdValue(self):
         if self.isAdjustorDecreasing:
             self.fHSV_container.high_S -= self.fincrement_value

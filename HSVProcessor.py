@@ -16,37 +16,47 @@ class HSVProcessor(threading.Thread):
 
         self.fmax_value = 255
         self.fmax_value_H = 360//2
+
+        self.fdilation_amt = 5
+        self.fdilation_itterations = 2
+
+        self.ferode_amt = 2
+
+        self.fblur_amt = 15
         
     def run(self):
         while True:
             try:
                 self.fframe_thread_Lock.acquire()
             finally:
-                try:   
-                    self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.getRGBFrame(), 
-                                                    cv2.COLOR_BGR2HSV)
-                    
-                    self.fframe_threshold = cv2.inRange(
-                                                self.fHSV_frame, 
-                                                (self.fHSV_adjustor_thread.getHSVValueContainer().low_H, 
-                                                self.fHSV_adjustor_thread.getHSVValueContainer().low_S, 
-                                                self.fHSV_adjustor_thread.getHSVValueContainer().low_V), 
-                                                (self.fHSV_adjustor_thread.getHSVValueContainer().high_H, 
-                                                self.fHSV_adjustor_thread.getHSVValueContainer().high_S, 
-                                                self.fHSV_adjustor_thread.getHSVValueContainer().high_V))
-                    
-                    self.fprocesed_frame = self.__processImg(self.fframe_threshold)
-                except:
-                    print("HSVProcessor Error")
+                self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.getRGBFrame(), 
+                                                cv2.COLOR_BGR2HSV)
+                
+                self.fframe_threshold = cv2.inRange(
+                                            self.fHSV_frame, 
+                                            (self.fHSV_adjustor_thread.getHSVValueContainer().low_H, 
+                                            self.fHSV_adjustor_thread.getHSVValueContainer().low_S, 
+                                            self.fHSV_adjustor_thread.getHSVValueContainer().low_V), 
+                                            (self.fHSV_adjustor_thread.getHSVValueContainer().high_H, 
+                                            self.fHSV_adjustor_thread.getHSVValueContainer().high_S, 
+                                            self.fHSV_adjustor_thread.getHSVValueContainer().high_V))
+                
+                self.fprocesed_frame = self.__processImg(self.fframe_threshold)
 
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
 
     def __processImg(self, input_frame):  
         #processing steps: https://imgur.com/a/9Muz1LN
-        output_img = cv2.erode(input_frame, np.ones((3, 3), np.uint8))
-        output_img = cv2.dilate(output_img, np.ones((7, 7), np.uint8), iterations = 2)
-        output_img = cv2.GaussianBlur(output_img, (15, 15), 0)
+        output_img = cv2.erode(input_frame, 
+                                np.ones((self.ferode_amt, self.ferode_amt), np.uint8))
+
+
+        output_img = cv2.dilate(output_img, 
+                                np.ones((self.fdilation_amt, self.fdilation_amt), np.uint8), 
+                                iterations = 2)
+        
+        output_img = cv2.GaussianBlur(output_img, (self.fblur_amt, self.fblur_amt), 0)
         
         return cv2.cvtColor(output_img, cv2.COLOR_GRAY2BGR)
 

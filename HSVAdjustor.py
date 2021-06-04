@@ -40,6 +40,11 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
 
         self.fincrement_value = 5
 
+        self.fadjustor_name = ""
+
+    def getAdjustorDirectionText(self):
+        return "decreasing" if self.fdecreasing_adjustor == HSVAdjustorMode.Decreasing else "increasing"
+
     def getThreshholdValue(self):
         return self.fthreshold_value
 
@@ -79,7 +84,7 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
                 step_diff = float(mean_frame_value_arr[len(mean_frame_value_arr) - 2]) - float(mean_value)
                 
                 # Fix this!!!
-                #print("step_diff: " + str(step_diff))
+                #print(self.fadjustor_name + " | step_diff: " + str(step_diff))
 
                 if float(step_diff) < 1:         
                     with self.fadjustor_condition_var:
@@ -95,7 +100,6 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
     def resetValues(self):
         self.ffinish_processing = False
         self.fprevious_values = []
-        
         self.fHSV_container.reset()
 
     @abstractmethod
