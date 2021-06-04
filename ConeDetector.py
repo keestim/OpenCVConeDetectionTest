@@ -49,7 +49,7 @@ class ConeDetector(threading.Thread):
     def getDetectedConeFrame(self):
         return self.fdetected_cone_frame
 
-    def __get_convex_hulls(self, contours):
+    def __getConvexHulls(self, contours):
         #https://docs.opencv.org/3.4/d7/d1d/tutorial_hull.html
         hull_list = []
         for i in range(len(contours)):

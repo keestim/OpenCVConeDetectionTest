@@ -22,18 +22,18 @@ class HSVProcessor(threading.Thread):
             try:
                 self.fframe_thread_Lock.acquire()
             finally:
-                try:
+                try:   
                     self.fHSV_frame = cv2.cvtColor(self.fvideo_thread.getRGBFrame(), 
                                                     cv2.COLOR_BGR2HSV)
                     
                     self.fframe_threshold = cv2.inRange(
                                                 self.fHSV_frame, 
-                                                (self.fHSV_adjustor_thread.getLowH(), 
-                                                self.fHSV_adjustor_thread.getLowS(), 
-                                                self.fHSV_adjustor_thread.getLowV()), 
-                                                (self.fHSV_adjustor_thread.getHighH(), 
-                                                self.fHSV_adjustor_thread.getHighS(), 
-                                                self.fHSV_adjustor_thread.getHighV()))
+                                                (self.fHSV_adjustor_thread.getHSVValueContainer().low_H, 
+                                                self.fHSV_adjustor_thread.getHSVValueContainer().low_S, 
+                                                self.fHSV_adjustor_thread.getHSVValueContainer().low_V), 
+                                                (self.fHSV_adjustor_thread.getHSVValueContainer().high_H, 
+                                                self.fHSV_adjustor_thread.getHSVValueContainer().high_S, 
+                                                self.fHSV_adjustor_thread.getHSVValueContainer().high_V))
                     
                     self.fprocesed_frame = self.__processImg(self.fframe_threshold)
                 except:
