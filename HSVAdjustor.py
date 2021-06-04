@@ -12,10 +12,13 @@ class HSVType(IntEnum):
 class HSVMetaClass(ABCMeta, type(threading.Thread)):
     pass
 
+##TODO change decreasing_adjustor from boolean to a custom enum!
 class HSVAdjustor(ABC, metaclass = HSVMetaClass):
-    def __init__(self, video_feed, decreasing_adjustor = True):
+    def __init__(self, video_feed, adjustor_condition_var, decreasing_adjustor = True):
         self.fdecreasing_adjustor = decreasing_adjustor
         self.ffinish_processing = False
+
+        self.fadjustor_condition_var = adjustor_condition_var        
 
         self.flow_H = 0
         self.flow_S = 0
@@ -50,11 +53,11 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
         while (True):
             if (not self.ffinish_processing):
                 self.getMeanBrightness()
-               
+   
     def getMeanBrightness(self):
         mean_frame_value_arr = []
         
-        while (True):
+        while (not self.ffinish_processing):
             self.fHSV_frame = cv2.cvtColor(self.fvideo_feed.getRGBFrame(), 
                                             cv2.COLOR_BGR2HSV)
             
@@ -77,8 +80,12 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
                 
                 if (step_diff) < 1:
                     self.updateValue()
-                    self.ffinish_processing = True
-                    
+                                        
+                    with self.fadjustor_condition_var:
+                        #TODO Fix performance!
+                        self.ffinish_processing = True
+                        self.fadjustor_condition_var.wait()
+                        
                     return
 
     def getDecreasingAdjustor(self):

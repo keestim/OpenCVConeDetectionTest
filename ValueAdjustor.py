@@ -1,9 +1,10 @@
 from HSVAdjustor import *
 
 class ValueAdjustor(HSVAdjustor, threading.Thread):
-    def __init__ (self, video_feed, decreasing_adjustor = True):
+    def __init__ (self, video_feed, adjustor_condition_var, decreasing_adjustor = True):
         HSVAdjustor.__init__(self, 
                             video_feed, 
+                            adjustor_condition_var,
                             decreasing_adjustor)
         
         threading.Thread.__init__(self)

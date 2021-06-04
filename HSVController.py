@@ -21,12 +21,16 @@ class HSVController(threading.Thread):
         self.fvideo_feed = video_feed
         self.fHSV_processors = []
 
-        self.fHSV_processors.append(HueAdjustor(video_feed, True))
+        self.fshared_adjustor_condition_var  = threading.Condition()
+
+        self.fHSV_processors.append(HueAdjustor(video_feed, self.fshared_adjustor_condition_var, False))
+        self.fHSV_processors.append(HueAdjustor(video_feed, self.fshared_adjustor_condition_var, True))
+
+        self.fHSV_processors.append(SaturationAdjustor(video_feed, self.fshared_adjustor_condition_var, False))
         self.fHSV_processors.append(SaturationAdjustor(video_feed, True))
-        self.fHSV_processors.append(ValueAdjustor(video_feed, True))
-        self.fHSV_processors.append(HueAdjustor(video_feed, False))
-        self.fHSV_processors.append(SaturationAdjustor(video_feed, False))
-        self.fHSV_processors.append(ValueAdjustor(video_feed, False))
+
+        self.fHSV_processors.append(ValueAdjustor(video_feed, self.fshared_adjustor_condition_var, True))
+        self.fHSV_processors.append(ValueAdjustor(video_feed, self.fshared_adjustor_condition_var, False))
 
         self.fHSV_frame = None
         self.fframe_threshold = None
@@ -38,28 +42,36 @@ class HSVController(threading.Thread):
         for HSV_adjustor in self.fHSV_processors:
             HSV_adjustor.start()
 
-        while True:
+        while (True):
+            self.fshared_adjustor_condition_var.acquire()    
+
             if len(self.fHSV_processors) > 0:
-                active_threads = filter(self.filterActiveAdjustorThreads, 
-                                        self.fHSV_processors)
-            
-                for adjustor_thread in active_threads:
-                    if adjustor_thread.getDecreasingAdjustor():
-                        high_HSV_values = [self.fhigh_H, self.fhigh_S, self.fhigh_V]
 
-                        high_HSV_values = adjustor_thread.getFinalHighHSVArray()
-                        self.fhigh_H = high_HSV_values[HSVType.Hue]
-                        self.fhigh_S = high_HSV_values[HSVType.Saturation]
-                        self.fhigh_V = high_HSV_values[HSVType.Value]
-                    else:
-                        low_HSV_values = [self.flow_H, self.flow_S, self.flow_V]
+                active_threads = list(filter(lambda x: not x.getfinishProcessing(), self.fHSV_processors))
 
-                        low_HSV_values = adjustor_thread.getFinalLowHSVArray()
-                        self.flow_H = low_HSV_values[HSVType.Hue]
-                        self.flow_S = low_HSV_values[HSVType.Saturation]
-                        self.flow_V = low_HSV_values[HSVType.Value]
+                if len(active_threads) == 0:
+                    for adjustor_thread in self.fHSV_processors:
+                        if adjustor_thread.getDecreasingAdjustor():
+                            high_HSV_values = [self.fhigh_H, self.fhigh_S, self.fhigh_V]
 
-                    adjustor_thread.resetValues()                        
+                            high_HSV_values = adjustor_thread.getFinalHighHSVArray()
+                            self.fhigh_H = high_HSV_values[HSVType.Hue]
+                            self.fhigh_S = high_HSV_values[HSVType.Saturation]
+                            self.fhigh_V = high_HSV_values[HSVType.Value]
+                        else:
+                            low_HSV_values = [self.flow_H, self.flow_S, self.flow_V]
+
+                            low_HSV_values = adjustor_thread.getFinalLowHSVArray()
+                            self.flow_H = low_HSV_values[HSVType.Hue]
+                            self.flow_S = low_HSV_values[HSVType.Saturation]
+                            self.flow_V = low_HSV_values[HSVType.Value]
+
+                        adjustor_thread.resetValues()   
+
+                    print("waking threads!")
+                    self.fshared_adjustor_condition_var.notifyAll()      
+
+            self.fshared_adjustor_condition_var.release()  
 
     def assignHSVValue(self, HSV_adjustor, current_HSV_values):
         if type(HSV_adjustor) == HueAdjustor:

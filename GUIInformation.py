@@ -30,16 +30,24 @@ class GUIInformation:
         sleep(0.2)
 
         #UI Window names
+        self.fwindow_frame_output = 'Visual Output'
+        self.fwindow_UI_components = 'UI Components'
+
+        '''
         self.fwindow_capture_name = 'Video Capture'
-        self.fwindow_detection_name = 'Object Detection'
         self.fwindow_processed_img_name = 'Processed Capture'
         self.fwindow_depth_name = 'Depth Capture'
+        '''
+        
         self.flow_H_name = 'Low H'
         self.flow_S_name = 'Low S'
         self.flow_V_name = 'Low V'
         self.fhigh_H_name = 'High H'
         self.fhigh_S_name = 'High S'
         self.fhigh_V_name = 'High V'
+
+        self.fplay_video_button = "Play Video"
+        self.fpause_video_button = "Pause Video"
 
         self.__createUIElements()
 
@@ -49,7 +57,7 @@ class GUIInformation:
                                                 self.fHSV_controller_thread.getLowH())
         
         cv2.setTrackbarPos(self.flow_H_name,
-                            self.fwindow_detection_name,
+                            self.fwindow_UI_components,
                             self.fHSV_controller_thread.getLowH())
 
     def __onHighHThreshTrackbar(self, val):
@@ -58,7 +66,7 @@ class GUIInformation:
                                                 self.fHSV_controller_thread.getLowH() + 1)
         
         cv2.setTrackbarPos(self.fhigh_H_name,
-                            self.fwindow_detection_name,
+                            self.fwindow_UI_components,
                             self.fHSV_controller_thread.getHighH())
 
     def __onLowSThreshTrackbar(self, val):
@@ -67,7 +75,7 @@ class GUIInformation:
                                                 self.fHSV_controller_thread.getLowS())
         
         cv2.setTrackbarPos(self.flow_S_name,
-                            self.fwindow_detection_name,
+                            self.fwindow_UI_components,
                             self.fHSV_controller_thread.getLowS())
 
     def __onHighSThreshTrackbar(self, val):
@@ -76,7 +84,7 @@ class GUIInformation:
                                                 self.fHSV_controller_thread.getLowS() + 1)
         
         cv2.setTrackbarPos(self.fhigh_S_name,
-                            self.fwindow_detection_name, 
+                            self.fwindow_UI_components, 
                             self.fHSV_controller_thread.getHighS())
 
     def __onLowVThreshTrackbar(self, val):
@@ -85,7 +93,7 @@ class GUIInformation:
                                                 self.fHSV_controller_thread.getLowV())
         
         cv2.setTrackbarPos(self.flow_V_name, 
-                            self.fwindow_detection_name,
+                            self.fwindow_UI_components,
                             self.fHSV_controller_thread.getLowV())
 
     def __onHighVThreshTrackbar(self, val):
@@ -94,67 +102,114 @@ class GUIInformation:
                                                 self.fHSV_controller_thread.getLowV() + 1)
         
         cv2.setTrackbarPos(self.fhigh_V_name, 
-                            self.fwindow_detection_name, 
+                            self.fwindow_UI_components, 
                             self.fHSV_controller_thread.getHighV())
 
+    def __onPlayVideoButton(self, val, other):
+        print("PLAYING VIDEO")
+    
+    def __onPauseVideoButton(self, val, other):
+        print("PAUSING VIDEO")
+    
+    #https://stackoverflow.com/questions/35180764/opencv-python-image-too-big-to-display
+    def __resizeWithAspectRatio(self, image, width=None, height=None, inter=cv2.INTER_AREA):
+        dim = None
+        (h, w) = image.shape[:2]
+
+        if width is None and height is None:
+            return image
+        if width is None:
+            r = height / float(h)
+            dim = (int(w * r), height)
+        else:
+            r = width / float(w)
+            dim = (width, int(h * r))
+
+        return cv2.resize(image, dim, interpolation=inter)
+
     def __createUIElements(self):
-        cv2.namedWindow(self.fwindow_capture_name)
-        cv2.namedWindow(self.fwindow_detection_name)
-        cv2.namedWindow(self.fwindow_processed_img_name)
+        # Windows are created
+        cv2.namedWindow(self.fwindow_frame_output)
+        cv2.namedWindow(self.fwindow_UI_components)
 
         cv2.createTrackbar(
             self.flow_H_name, 
-            self.fwindow_detection_name, 
+            self.fwindow_UI_components, 
             self.fHSV_controller_thread.getLowH(), 
             self.fHSV_controller_thread.getMaxValueH(), 
             self.__onLowHThreshTrackbar)
 
         cv2.createTrackbar(
             self.fhigh_H_name, 
-            self.fwindow_detection_name, 
+            self.fwindow_UI_components, 
             self.fHSV_controller_thread.getHighH(), 
             self.fHSV_controller_thread.getMaxValueH(), 
             self.__onHighHThreshTrackbar)
 
         cv2.createTrackbar(
             self.flow_S_name, 
-            self.fwindow_detection_name, 
+            self.fwindow_UI_components, 
             self.fHSV_controller_thread.getLowS(), 
             self.fHSV_controller_thread.getMaxValue(), 
             self.__onLowSThreshTrackbar)
 
         cv2.createTrackbar(
             self.fhigh_S_name, 
-            self.fwindow_detection_name, 
+            self.fwindow_UI_components, 
             self.fHSV_controller_thread.getHighS(), 
             self.fHSV_controller_thread.getMaxValue(), 
             self.__onHighSThreshTrackbar)
 
         cv2.createTrackbar(
             self.flow_V_name, 
-            self.fwindow_detection_name, 
+            self.fwindow_UI_components, 
             self.fHSV_controller_thread.getLowV(), 
             self.fHSV_controller_thread.getMaxValue(), 
             self.__onLowVThreshTrackbar)
 
         cv2.createTrackbar(
             self.fhigh_V_name, 
-            self.fwindow_detection_name, 
+            self.fwindow_UI_components, 
             self.fHSV_controller_thread.getHighV(), 
             self.fHSV_controller_thread.getMaxValue(), 
             self.__onHighVThreshTrackbar)
 
+        cv2.createButton(
+            self.fplay_video_button,
+            self.__onPlayVideoButton,
+            self.fwindow_UI_components, 
+            cv2.QT_PUSH_BUTTON,
+            1
+        )
+
+        cv2.createButton(
+            self.fpause_video_button,
+            self.__onPauseVideoButton,
+            self.fwindow_UI_components, 
+            cv2.QT_PUSH_BUTTON,
+            1
+        )
+
     def renderWindowFrames(self):  
+        stacked_frames = np.concatenate((self.fvideo_feed_thread.getRGBFrame(), 
+                                        self.fcone_detector_thread.getDetectedConeFrame()),
+                                        axis = 0)
+
+        stacked_frames = self.__resizeWithAspectRatio(stacked_frames, width = 720)
+        cv2.imshow(self.fwindow_frame_output, stacked_frames)
+        
+        '''
         cv2.imshow(self.fwindow_capture_name, 
                     self.fvideo_feed_thread.getRGBFrame())        
         
-        cv2.imshow(self.fwindow_detection_name, 
-                    self.fHSV_processor_thread.getFrameThreshold())
-
         if (self.fcone_detector_thread.getDetectedConeFrame() is not None):
             cv2.imshow(self.fwindow_processed_img_name, 
                         self.fcone_detector_thread.getDetectedConeFrame())       
 
+        cv2.imshow(self.fwindow_detection_name, 
+                    self.fHSV_processor_thread.getFrameThreshold())
+
         if (self.fvideo_feed_thread.getDepthFrame() is not None):
             cv2.imshow(self.fwindow_depth_name, 
                         self.fvideo_feed_thread.getDepthFrame())   
+        '''
