@@ -19,6 +19,8 @@ class HSVMetaClass(ABCMeta, type(threading.Thread)):
 
 ##TODO change decreasing_adjustor from boolean to a custom enum!
 class HSVAdjustor(ABC, metaclass = HSVMetaClass):
+    __BENCHMARK_STEP_VALUE = 5
+
     def __init__(self, 
                 video_feed, 
                 adjustor_condition_var, 
@@ -30,15 +32,13 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
         self.fadjustor_condition_var = adjustor_condition_var        
         self.fHSV_container = HSVValueContainer()
         
-        self.fprevious_values = []
-
         self.fthreshold_value = 0
 
         self.fvideo_feed = video_feed
 
         self.fmax_value = MAX_VALUE
 
-        self.fincrement_value = 5
+        self.fincrement_value = self.__BENCHMARK_STEP_VALUE
 
         self.fadjustor_name = ""
 
@@ -57,13 +57,23 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
         while (True):
             if (not self.ffinish_processing):
                 self.findTargetHSVValue()
-   
+    
+    def findNewStepAmt(self, frame_adjustment_value_arr):
+        prev_change = float(frame_adjustment_value_arr[-2]["frame_mean"] - frame_adjustment_value_arr[-1]["frame_mean"])
+        # gets the step amount to adjust in a logarithmic way, account the previously recorded rate of change
+        # scale formula was decided such that:
+        #   output can never be less than 1 (impossible to have a divide by 0 error)
+        #       y intercept is (0, 1)
+        #   y values of function plateau towards 11
+        #   f(20) = 5
+        #       data has shown that 
+        return int(round(10 * ((-1/((prev_change / 30) + 1)) + 1) + 1)) 
+
     def findTargetHSVValue(self):
-        mean_frame_value_arr = []
+        frame_adjustment_value_arr = []
         
         while (not self.ffinish_processing):
-            self.fHSV_frame = cv2.cvtColor(self.fvideo_feed.getRGBFrame(), 
-                                            cv2.COLOR_BGR2HSV)
+            self.fHSV_frame = self.fvideo_feed.getHSVFrame()
 
             self.fframe_threshold = cv2.inRange(self.fHSV_frame, 
                                                 (self.fHSV_container.low_H,
@@ -74,24 +84,29 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
                                                 self.fHSV_container.high_V))
             
             mean_value = cv2.mean(self.fframe_threshold)[0]
-            mean_frame_value_arr.append(mean_value)
-            
+
+            # Need atleast 2 elements in array to calculate relative step value
+            if len(frame_adjustment_value_arr) >= 2:
+                self.fincrement_value = self.findNewStepAmt(frame_adjustment_value_arr)    
+
+            frame_adjustment_value_arr.append({"frame_mean" : mean_value, "step_amt" : self.fincrement_value})
+
             self.decreaseSpecifiedThresholdValue()
 
-            # TODO Improve this array code here
-            # TODO No "magic" numbers!
-            if (len(mean_frame_value_arr) > 3):
-                step_diff = float(mean_frame_value_arr[len(mean_frame_value_arr) - 2]) - float(mean_value)
-                
-                # Fix this!!!
-                #print(self.fadjustor_name + " | step_diff: " + str(step_diff))
+            # Need atleast 3 data points, to get atleast 2 difference values 
+            if (len(frame_adjustment_value_arr) >= 3):
+                last_mean_difference = float(frame_adjustment_value_arr[-2]["frame_mean"] - frame_adjustment_value_arr[-1]["frame_mean"])
+                #make the mean value proportional to the base of 5 (when was utilized previously)
+                #I (tim) found it to be a good benchmark for evaluating rate of change
 
-                if float(step_diff) < 1:         
+                proportional_step_amt = round(self.__BENCHMARK_STEP_VALUE / (self.__BENCHMARK_STEP_VALUE / frame_adjustment_value_arr[-1]["step_amt"]))
+                last_relative_mean = last_mean_difference / proportional_step_amt
+
+                if float(last_relative_mean) < 1:         
                     with self.fadjustor_condition_var:
-                        #TODO Fix performance!
                         self.ffinish_processing = True
+
                         self.fadjustor_condition_var.wait()
-                        
                     return
 
     def isAdjustorDecreasing(self):
@@ -99,7 +114,7 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
 
     def resetValues(self):
         self.ffinish_processing = False
-        self.fprevious_values = []
+        self.fincrement_value = self.__BENCHMARK_STEP_VALUE
         self.fHSV_container.reset()
 
     @abstractmethod

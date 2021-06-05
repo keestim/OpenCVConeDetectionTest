@@ -19,8 +19,6 @@ class ExternalImageReader(VideoSource, threading.Thread):
     #function to get RGB image from external image
     def getVideo(self):
         img = cv2.imread(self.ffile_src)
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-
         return img
         
     #function to get depth image from external image

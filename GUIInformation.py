@@ -2,7 +2,6 @@
 #UI Stuff
 
 from ConeDetector import *
-from HSVProcessor import *
 from HSVController import *
 from time import sleep
 
@@ -14,16 +13,9 @@ class GUIInformation:
         self.fHSV_controller_thread = HSVController(video_feed)
         self.fHSV_controller_thread.start()
 
-        self.fHSV_processor_thread = HSVProcessor(self.fHSV_controller_thread, 
-                                                    self.fvideo_feed_thread, 
-                                                    generate_frame_lock)
+        sleep(0.5)
 
-        self.fHSV_processor_thread.start()
-        sleep(0.2)
-
-        self.fcone_detector_thread = ConeDetector(self.fHSV_processor_thread,
-                                                  render_frame_lock)
-
+        self.fcone_detector_thread = ConeDetector(self.fvideo_feed_thread, self.fHSV_controller_thread, render_frame_lock)
         self.fcone_detector_thread.start()
 
         sleep(0.2)
@@ -184,8 +176,6 @@ class GUIInformation:
         )
 
     def renderWindowFrames(self):  
-        stacked_frames = self.fvideo_feed_thread.getRGBFrame()
-
         stacked_frames = np.concatenate((self.fvideo_feed_thread.getRGBFrame(), 
                                         self.fcone_detector_thread.getDetectedConeFrame()),
                                         axis = 0)

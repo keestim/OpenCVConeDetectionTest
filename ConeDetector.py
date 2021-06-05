@@ -8,9 +8,14 @@ import copy
 
 #TODO fix "magic numbers" have these come from actual variables, not just raw values sitting in code!
 class ConeDetector(threading.Thread):
-    def __init__(self, hsv_processor, frame_thread_Lock):
+    def __init__(self, video_thread, HSV_controller, frame_thread_Lock):
         threading.Thread.__init__(self)
-        self.fhsv_processor = hsv_processor
+        self.fvideo_thread = video_thread
+        self.fHSV_controller = HSV_controller
+
+        self.fraw_HSV_frame = None
+        self.fprocessed_HSV_frame = None
+
         self.fdetected_cone_frame = None
         self.fminimum_hull_size = 250
         self.fminimum_contour_size = 10
@@ -18,17 +23,46 @@ class ConeDetector(threading.Thread):
 
         self.fframe_thread_Lock = frame_thread_Lock
 
+        self.fdilation_amt = 5
+        self.fdilation_itterations = 2
+
+        self.ferode_amt = 2
+
+        self.fblur_amt = 15
+
     def run(self):
         while True:
-            current_frame = copy.deepcopy(self.fhsv_processor.getProcesedFrame())
-            processed_contours = self.__generateContours(current_frame)
+            self.fraw_HSV_frame = self.__getHSVThresholdFrame()
+            self.fprocessed_HSV_image = self.__processRawHSVImg()
+            processed_contours = self.__generateContours(self.fprocessed_HSV_image)
 
             try:
                 self.fframe_thread_Lock.acquire()
             finally:
-                self.fdetected_cone_frame = self.__renderValidConvexHulls(current_frame, processed_contours)
+                self.fdetected_cone_frame = self.__renderValidConvexHulls(self.fprocessed_HSV_image, processed_contours)
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
+
+    def __getHSVThresholdFrame(self):
+        return cv2.inRange(
+            self.fvideo_thread.getHSVFrame(),
+            (self.fHSV_controller.getHSVValueContainer().low_H,
+            self.fHSV_controller.getHSVValueContainer().low_S, 
+            self.fHSV_controller.getHSVValueContainer().low_V),
+            (self.fHSV_controller.getHSVValueContainer().high_H,
+            self.fHSV_controller.getHSVValueContainer().high_S,
+            self.fHSV_controller.getHSVValueContainer().high_V)) 
+
+    def __processRawHSVImg(self):
+        output_img = cv2.erode(self.fraw_HSV_frame, 
+                                np.ones((self.ferode_amt, self.ferode_amt), np.uint8))
+
+        output_img = cv2.dilate(output_img, 
+                                np.ones((self.fdilation_amt, self.fdilation_amt), np.uint8), 
+                                iterations = 2)
+        
+        output_img = cv2.GaussianBlur(output_img, (self.fblur_amt, self.fblur_amt), 0)
+        return cv2.cvtColor(output_img, cv2.COLOR_GRAY2BGR)
 
     #https://jdhao.github.io/2019/02/23/crop_rotated_rectangle_opencv/
     #generates a cropped frame from the input frame and rotated rectangle attributes
