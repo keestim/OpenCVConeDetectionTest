@@ -17,30 +17,36 @@ class HSVController(threading.Thread):
 
         self.fHSV_processors = []
 
-        self.fHSV_processors.append(HueAdjustor(video_feed, 
-                                                self.fshared_adjustor_condition_var, 
-                                                HSVAdjustorMode.Increasing))
-        
+
+
         self.fHSV_processors.append(HueAdjustor(video_feed, 
                                                 self.fshared_adjustor_condition_var, 
                                                 HSVAdjustorMode.Decreasing))
-        
+
         self.fHSV_processors.append(SaturationAdjustor(video_feed, 
-                                                        self.fshared_adjustor_condition_var, 
-                                                        HSVAdjustorMode.Increasing))
-        
-        self.fHSV_processors.append(SaturationAdjustor(video_feed, 
-                                                        self.fshared_adjustor_condition_var,
-                                                        HSVAdjustorMode.Decreasing))
-        '''
+                                                self.fshared_adjustor_condition_var,
+                                                HSVAdjustorMode.Decreasing))
+
+        self.fHSV_processors.append(ValueAdjustor(video_feed, 
+                                            self.fshared_adjustor_condition_var, 
+                                            HSVAdjustorMode.Decreasing))
+
+        self.fHSV_processors.append(HueAdjustor(video_feed, 
+                                                self.fshared_adjustor_condition_var, 
+                                                HSVAdjustorMode.Increasing))
+
         self.fHSV_processors.append(ValueAdjustor(video_feed, 
                                                     self.fshared_adjustor_condition_var, 
                                                     HSVAdjustorMode.Increasing))
 
-        self.fHSV_processors.append(ValueAdjustor(video_feed, 
-                                                    self.fshared_adjustor_condition_var, 
-                                                    HSVAdjustorMode.Decreasing))
+
+
+
         '''
+        self.fHSV_processors.append(SaturationAdjustor(video_feed, 
+                                                self.fshared_adjustor_condition_var, 
+                                                HSVAdjustorMode.Increasing))
+        '''   
 
         self.fHSV_frame = None
         self.fframe_threshold = None
@@ -63,6 +69,8 @@ class HSVController(threading.Thread):
                         self.fHSV_value_container = adjustor_thread.setCalculatedThresholdValue(self.fHSV_value_container)
                         
                         adjustor_thread.resetValues()   
+
+                    #TODO try change to just "notify" instead of "notifyAll"
                     self.fshared_adjustor_condition_var.notifyAll()      
 
             self.fshared_adjustor_condition_var.release()  
