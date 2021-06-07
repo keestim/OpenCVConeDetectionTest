@@ -6,7 +6,6 @@ import math
 from time import sleep
 import copy
 
-#TODO fix "magic numbers" have these come from actual variables, not just raw values sitting in code!
 class ConeDetector(threading.Thread):
     def __init__(self, video_thread, HSV_controller, frame_thread_Lock):
         threading.Thread.__init__(self)
@@ -17,7 +16,7 @@ class ConeDetector(threading.Thread):
         self.fprocessed_HSV_frame = None
 
         self.fdetected_cone_frame = None
-        self.fminimum_hull_size = 250
+        self.fminimum_hull_size = 2000
         self.fminimum_contour_size = 10
         self.fminimum_rotated_rect_mean_brightness = 100
 
@@ -54,14 +53,17 @@ class ConeDetector(threading.Thread):
             self.fHSV_controller.getHSVValueContainer().high_V)) 
 
     def __processRawHSVImg(self):
-        output_img = cv2.erode(self.fraw_HSV_frame, 
-                                np.ones((self.ferode_amt, self.ferode_amt), np.uint8))
+        output_img = self.fraw_HSV_frame
 
+        output_img = cv2.erode(output_img, 
+                                np.ones((self.ferode_amt, self.ferode_amt), np.uint8))
+                
         output_img = cv2.dilate(output_img, 
                                 np.ones((self.fdilation_amt, self.fdilation_amt), np.uint8), 
                                 iterations = 2)
-        
+
         output_img = cv2.GaussianBlur(output_img, (self.fblur_amt, self.fblur_amt), 0)
+
         return cv2.cvtColor(output_img, cv2.COLOR_GRAY2BGR)
 
     #https://jdhao.github.io/2019/02/23/crop_rotated_rectangle_opencv/
@@ -147,7 +149,7 @@ class ConeDetector(threading.Thread):
                 #flip the rotated rectangle width and height
                 #IF the angle is less than 0 (OPENCV angle is always reports as a negative (not sure why))
                 #AND the width is greater than the height of the convex hull (calculated from the extreme points) 
-                if (angle < 0) and (top_bottom_distance > left_right_distance):
+                if (angle < 0 or angle == 90) and (top_bottom_distance > left_right_distance):
                     width_clone = width
                     width = height
                     height = width_clone
@@ -160,7 +162,10 @@ class ConeDetector(threading.Thread):
                 #if greater than 1, then width is greater than height
                 #we expect cones to be standing upright, hence being taller than they are wide
                 #aspect ratio must be also greater than 0.15, which aids in removed irrelevant data
+
+                #TODO look for issues here onwards!!!
                 if (aspect_ratio <= 1) and (aspect_ratio >= 0.15):
+
                     #gets the average of the left and right points
                     left_right_avg = [
                         (extreme_points["left"][0] + extreme_points["right"][0])/2, 
@@ -173,11 +178,11 @@ class ConeDetector(threading.Thread):
                     #either the length from the top to the LR average 
                     #or the length from the bottom to the LR average
                     #must be less than 35% of the total height
-                    valid_ratio = list(filter(lambda x: x < top_bottom_distance * 0.35, distance_from_left_right_avg))
+                    valid_ratio = list(filter(lambda x: x < top_bottom_distance * 0.5, distance_from_left_right_avg))
 
                     #width and height are from rotated rectange above
                     #area of the convex hull must be less than OR equal to 65% of the area fo the rotated rectangle
-                    if (len(valid_ratio) > 0) and (self.__getConvexHullArea(hull) <= (width * height) * 0.65):
+                    if (len(valid_ratio) > 0) and (self.__getConvexHullArea(hull) <= (width * height) * 0.7):
                         #gets a cropped frame of just what's contained within the rotated rectangle
                         cropped_hull = self.__cropImageFromRotatedRect(ProcessedFrame, box, int(width), int(height))
 
@@ -199,7 +204,8 @@ class ConeDetector(threading.Thread):
             hull = cv2.convexHull(c)
             
             if (self.__isValidConvexHull(hull, ProcessedFrame)):
-                valid_hulls.append(hull)           
+                valid_hulls.append(hull)       
+
                 cv2.drawContours(ProcessedFrame, [hull], 0, (255, 0, 255), 2)
 
         return ProcessedFrame

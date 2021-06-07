@@ -18,6 +18,12 @@ class HueAdjustor(HSVAdjustor, threading.Thread):
         else:
             self.fHSV_container.low_H += self.fincrement_value
 
+    def decreaseSpecifiedThresholdValueSetAmt(self, step_amt):
+        if self.isAdjustorDecreasing():
+            self.fHSV_container.high_H -= step_amt
+        else:
+            self.fHSV_container.low_H += step_amt
+
     def getSpecifiedThresholdValue(self):
         return self.fHSV_container.high_H if (self.isAdjustorDecreasing()) else self.fHSV_container.low_H
 

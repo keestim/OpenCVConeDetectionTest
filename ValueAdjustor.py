@@ -17,6 +17,12 @@ class ValueAdjustor(HSVAdjustor, threading.Thread):
         else:
             self.fHSV_container.low_V += self.fincrement_value
 
+    def decreaseSpecifiedThresholdValueSetAmt(self, step_amt):
+        if self.isAdjustorDecreasing():
+            self.fHSV_container.high_V -= step_amt
+        else:
+            self.fHSV_container.low_V += step_amt
+
     def getSpecifiedThresholdValue(self):
         return self.fHSV_container.high_V if (self.isAdjustorDecreasing()) else self.fHSV_container.low_V
 

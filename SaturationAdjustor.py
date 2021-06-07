@@ -17,6 +17,12 @@ class SaturationAdjustor(HSVAdjustor, threading.Thread):
         else:
             self.fHSV_container.low_S += self.fincrement_value
 
+    def decreaseSpecifiedThresholdValueSetAmt(self, step_amt):
+        if self.isAdjustorDecreasing():
+            self.fHSV_container.high_S -= step_amt
+        else:
+            self.fHSV_container.low_S += step_amt
+
     def getSpecifiedThresholdValue(self):
         return self.fHSV_container.high_S if (self.isAdjustorDecreasing()) else self.fHSV_container.low_S
 

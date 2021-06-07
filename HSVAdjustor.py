@@ -115,9 +115,9 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
 
                 # guarantee that some meaningful adjustment is made, but ensuring that the last record mean is less than or equal to 97% of the initial value 
                 if (float(last_relative_mean) < 1) and (frame_adjustment_value_arr[-1]["frame_mean"] <= (self.finitial_frame_mean * 0.97)):
-                #if (float(last_relative_mean) < 1):         
-
                     with self.fadjustor_condition_var:
+                        self.decreaseSpecifiedThresholdValueSetAmt(-3)
+
                         self.ffinish_processing = True
 
                         self.fadjustor_condition_var.wait()
@@ -134,6 +134,10 @@ class HSVAdjustor(ABC, metaclass = HSVMetaClass):
 
     @abstractmethod
     def decreaseSpecifiedThresholdValue(self):
+        pass
+
+    @abstractmethod
+    def decreaseSpecifiedThresholdValueSetAmt(self, step_amt):
         pass
 
     @abstractmethod
