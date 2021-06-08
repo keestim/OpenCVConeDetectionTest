@@ -161,7 +161,6 @@ class ConeDetector(threading.Thread):
             (self.__getConvexHullArea(hull) > self.fminimum_hull_size or 
             (self.__getConvexHullArea(hull) * -1) > self.fminimum_hull_size)):
                 if self.__convexHullPointingUp(hull):
-                    return True
                     return (self.__getHullMeanBrightness(hull, processed_frame) > self.fminimum_rotated_rect_mean_brightness)        
         return False
 
