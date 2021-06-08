@@ -89,10 +89,10 @@ class ConeDetector(threading.Thread):
 
         return area
 
-    def __generateContours(self, ProcessedFrame):
+    def __generateContours(self, processed_frame):
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
         #get edges and then contours from the processed frame
-        edge = cv2.Canny(ProcessedFrame, 80, 160)
+        edge = cv2.Canny(processed_frame, 80, 160)
         contours, h = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
@@ -107,17 +107,17 @@ class ConeDetector(threading.Thread):
         return processed_contours
 
     #https://github.com/mustafaezer/traffic-cone-detection/blob/master/main.py
-    def __convexHullPointingUp(self, ch):
+    def __convexHullPointingUp(self, convex_hull):
         points_above_center = []
         points_below_center = []
 
-        x, y, width, height = cv2.boundingRect(ch)
+        x, y, width, height = cv2.boundingRect(convex_hull)
         aspect_ratio = width / height
 
         if 0.15 <= aspect_ratio <= 0.8:
             vertical_center = y + (height / 2)
 
-            for point in ch:
+            for point in convex_hull:
                 if point[0][1] < vertical_center:
                     points_above_center.append(point)
                 elif point[0][1] >= vertical_center:
@@ -164,8 +164,8 @@ class ConeDetector(threading.Thread):
                     return (self.__getHullMeanBrightness(hull, processed_frame) > self.fminimum_rotated_rect_mean_brightness)        
         return False
 
-    def __renderValidConvexHulls(self, processed_frame, ProcessedContours):
-        for c in ProcessedContours:
+    def __renderValidConvexHulls(self, processed_frame, processed_contours):
+        for c in processed_contours:
             hull = cv2.convexHull(c)
             
             if (self.__isValidConvexHull(hull, processed_frame)):

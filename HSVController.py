@@ -35,13 +35,18 @@ class HSVController(threading.Thread):
 
         self.fHSV_frame = None
         self.fframe_threshold = None
-        
+    
+    def getHSVValueContainer(self):
+        return self.fHSV_value_container
+
     def filterActiveAdjustorThreads(self, adjustor_thread):
         return adjustor_thread.getFinishedProcessing()
 
     def run(self):
         for HSV_adjustor in self.fHSV_processors:
             HSV_adjustor.start()
+
+        self.fHSV_value_container.reset()
 
         while (True):
             self.fshared_adjustor_condition_var.acquire()    

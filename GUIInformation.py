@@ -24,53 +24,14 @@ class GUIInformation:
         self.fwindow_frame_output = 'Visual Output'
         self.fwindow_UI_components = 'UI Components'
         
-        self.flow_H_name = 'Low H'
-        self.flow_S_name = 'Low S'
         self.flow_V_name = 'Low V'
-        self.fhigh_H_name = 'High H'
-        self.fhigh_S_name = 'High S'
+
         self.fhigh_V_name = 'High V'
 
         self.fplay_video_button = "Play Video"
         self.fpause_video_button = "Pause Video"
 
         self.__createUIElements()
-
-    def __onLowHThreshTrackbar(self, val):
-        self.fHSV_controller_thread.getHSVValueContainer().low_H = val
-        self.fHSV_controller_thread.getHSVValueContainer().low_H = min(self.fHSV_controller_thread.getHSVValueContainer().high_H - 1, 
-                                                                        self.fHSV_controller_thread.getHSVValueContainer().low_H)
-        
-        cv2.setTrackbarPos(self.flow_H_name,
-                            self.fwindow_UI_components,
-                            self.fHSV_controller_thread.getHSVValueContainer().low_H)
-
-    def __onHighHThreshTrackbar(self, val):
-        self.fHSV_controller_thread.getHSVValueContainer().high_H = val
-        self.fHSV_controller_thread.getHSVValueContainer().high_H = max(self.fHSV_controller_thread.getHSVValueContainer().high_H, 
-                                                                        self.fHSV_controller_thread.getHSVValueContainer().low_H + 1)
-        
-        cv2.setTrackbarPos(self.fhigh_H_name,
-                            self.fwindow_UI_components,
-                            self.fHSV_controller_thread.getHSVValueContainer().high_H)
-
-    def __onLowSThreshTrackbar(self, val):
-        self.fHSV_controller_thread.getHSVValueContainer().low_S = val
-        self.fHSV_controller_thread.getHSVValueContainer().low_S = min(self.fHSV_controller_thread.getHSVValueContainer().high_S - 1, 
-                                                                        self.fHSV_controller_thread.getHSVValueContainer().low_S)
-        
-        cv2.setTrackbarPos(self.flow_S_name,
-                            self.fwindow_UI_components,
-                            self.fHSV_controller_thread.getHSVValueContainer().low_S)
-
-    def __onHighSThreshTrackbar(self, val):
-        self.fHSV_controller_thread.getHSVValueContainer().high_S = val
-        self.fHSV_controller_thread.getHSVValueContainer().high_S = max(self.fHSV_controller_thread.getHSVValueContainer().high_S, 
-                                                                        self.fHSV_controller_thread.getHSVValueContainer().low_S + 1)
-        
-        cv2.setTrackbarPos(self.fhigh_S_name,
-                            self.fwindow_UI_components, 
-                            self.fHSV_controller_thread.getHSVValueContainer().high_S)
 
     def __onLowVThreshTrackbar(self, val):
         self.fHSV_controller_thread.getHSVValueContainer().low_V = val
@@ -116,34 +77,6 @@ class GUIInformation:
         # Windows are created
         cv2.namedWindow(self.fwindow_frame_output)
         cv2.namedWindow(self.fwindow_UI_components)
-
-        cv2.createTrackbar(
-            self.flow_H_name, 
-            self.fwindow_UI_components, 
-            self.fHSV_controller_thread.getHSVValueContainer().low_H, 
-            MAX_HUE_VALUE, 
-            self.__onLowHThreshTrackbar)
-
-        cv2.createTrackbar(
-            self.fhigh_H_name, 
-            self.fwindow_UI_components, 
-            self.fHSV_controller_thread.getHSVValueContainer().high_H, 
-            MAX_HUE_VALUE, 
-            self.__onHighHThreshTrackbar)
-
-        cv2.createTrackbar(
-            self.flow_S_name, 
-            self.fwindow_UI_components, 
-            self.fHSV_controller_thread.getHSVValueContainer().low_S, 
-            MAX_VALUE, 
-            self.__onLowSThreshTrackbar)
-
-        cv2.createTrackbar(
-            self.fhigh_S_name, 
-            self.fwindow_UI_components, 
-            self.fHSV_controller_thread.getHSVValueContainer().high_S, 
-            MAX_VALUE, 
-            self.__onHighSThreshTrackbar)
 
         cv2.createTrackbar(
             self.flow_V_name, 
