@@ -50,12 +50,6 @@ class GUIInformation:
         cv2.setTrackbarPos(self.fhigh_V_name, 
                             self.fwindow_UI_components, 
                             self.fHSV_controller_thread.getHSVValueContainer().high_V)
-
-    def __onPlayVideoButton(self, val, other):
-        print("PLAYING VIDEO")
-    
-    def __onPauseVideoButton(self, val, other):
-        print("PAUSING VIDEO")
     
     #https://stackoverflow.com/questions/35180764/opencv-python-image-too-big-to-display
     def __resizeWithAspectRatio(self, image, width = None, height = None, inter = cv2.INTER_AREA):
