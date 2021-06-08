@@ -55,16 +55,12 @@ class ConeDetector(threading.Thread):
     def __processRawHSVImg(self):
         output_img = self.fraw_HSV_frame
 
-        output_img = cv2.erode(output_img, 
-                                np.ones((self.ferode_amt, self.ferode_amt), np.uint8))
-                
-        output_img = cv2.dilate(output_img, 
-                                np.ones((self.fdilation_amt, self.fdilation_amt), np.uint8), 
-                                iterations = 2)
+        kernel = np.ones((3, 3), np.uint8)
+        output_img = cv2.erode(output_img, kernel, iterations=1)
+        output_img = cv2.dilate(output_img, kernel, iterations=1)
+        output_img = cv2.GaussianBlur(output_img, (3, 3), 0)
 
-        output_img = cv2.GaussianBlur(output_img, (self.fblur_amt, self.fblur_amt), 0)
-
-        return cv2.cvtColor(output_img, cv2.COLOR_GRAY2BGR)
+        return cv2.cvtColor(output_img, cv2.COLOR_GRAY2RGB)
 
     #https://jdhao.github.io/2019/02/23/crop_rotated_rectangle_opencv/
     #generates a cropped frame from the input frame and rotated rectangle attributes
@@ -116,7 +112,7 @@ class ConeDetector(threading.Thread):
     def __generateContours(self, ProcessedFrame):
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
         #get edges and then contours from the processed frame
-        edge = cv2.Canny(ProcessedFrame, 30, 200)
+        edge = cv2.Canny(ProcessedFrame, 80, 160)
         contours, h = cv2.findContours(edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
@@ -130,11 +126,45 @@ class ConeDetector(threading.Thread):
 
         return processed_contours
 
+    def __convexHullPointingUp(self, ch):
+        pointsAboveCenter, poinstBelowCenter = [], []
+
+        x, y, w, h = cv2.boundingRect(ch)
+        aspectRatio = w / h
+
+        if aspectRatio < 0.8:
+            verticalCenter = y + h / 2
+
+            for point in ch:
+                if point[0][1] < verticalCenter:
+                    pointsAboveCenter.append(point)
+                elif point[0][1] >= verticalCenter:
+                    poinstBelowCenter.append(point)
+
+            leftX = poinstBelowCenter[0][0][0]
+            rightX = poinstBelowCenter[0][0][0]
+            for point in poinstBelowCenter:
+                if point[0][0] < leftX:
+                    leftX = point[0][0]
+                if point[0][0] > rightX:
+                    rightX = point[0][0]
+
+            for point in pointsAboveCenter:
+                if (point[0][0] < leftX) or (point[0][0] > rightX):
+                    return False
+
+        else:
+            return False
+
+        return True
+
     def __isValidConvexHull(self, hull, ProcessedFrame):
         #A valid hull must have between 3 and 10 edges
         if ((len(hull) >= 3 or len(hull) <= 10) and 
             (self.__getConvexHullArea(hull) > self.fminimum_hull_size or 
             (self.__getConvexHullArea(hull) * -1) > self.fminimum_hull_size)):
+                return self.__convexHullPointingUp(hull)
+
                 rect = cv2.minAreaRect(hull)
                 (x, y), (width, height), angle = rect
 
