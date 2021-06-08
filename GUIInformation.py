@@ -86,22 +86,6 @@ class GUIInformation:
             MAX_VALUE, 
             self.__onHighVThreshTrackbar)
 
-        cv2.createButton(
-            self.fplay_video_button,
-            self.__onPlayVideoButton,
-            self.fwindow_UI_components, 
-            cv2.QT_PUSH_BUTTON,
-            1
-        )
-
-        cv2.createButton(
-            self.fpause_video_button,
-            self.__onPauseVideoButton,
-            self.fwindow_UI_components, 
-            cv2.QT_PUSH_BUTTON,
-            1
-        )
-
     def renderWindowFrames(self):  
         stacked_frames = np.concatenate((self.fvideo_feed_thread.getRGBFrame(), 
                                         self.fcone_detector_thread.getDetectedConeFrame()),

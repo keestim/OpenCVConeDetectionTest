@@ -83,9 +83,9 @@ class ConeDetector(threading.Thread):
         area = 0
         for i in  range(len(hull) - 1):
             next_i = (i + 1) % (len(hull))
-            dX   = hull[next_i][0][0] - hull[i][0][0]
+            dx = hull[next_i][0][0] - hull[i][0][0]
             avg_y = (hull[next_i][0][1] + hull[i][0][1]) / 2
-            area += dX * avg_y;  # this is the integration step.
+            area += dx * avg_y;  # this is the integration step.
 
         return area
 
@@ -126,9 +126,9 @@ class ConeDetector(threading.Thread):
             left_x = points_below_center[0][0][0]
             right_x = points_below_center[0][0][0]
             for point in points_below_center:
-                if point[0][0] < left_x:
+                if (point[0][0] < left_x):
                     left_x = point[0][0]
-                if point[0][0] > right_x:
+                elif (point[0][0] > right_x):
                     right_x = point[0][0]
 
             for point in points_above_center:
@@ -141,6 +141,11 @@ class ConeDetector(threading.Thread):
 
     def __getHullMeanBrightness(self, hull, processed_frame):
         rect = cv2.minAreaRect(hull)
+            
+        # cv2.minAreaRect returns:
+        # [[x, y], [width, height], angle]
+        # initially, we assign this array of arrays to the rect variable
+        # then we split it up into it's individual components
         (x, y), (width, height), angle = rect
 
         box = cv2.boxPoints(rect)
