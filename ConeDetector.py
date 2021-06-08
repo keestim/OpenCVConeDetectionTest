@@ -152,77 +152,35 @@ class ConeDetector(threading.Thread):
             for point in pointsAboveCenter:
                 if (point[0][0] < leftX) or (point[0][0] > rightX):
                     return False
-
         else:
             return False
 
         return True
 
-    def __isValidConvexHull(self, hull, ProcessedFrame):
+    def __getHullMeanBrightness(self, hull, processed_frame):
+        rect = cv2.minAreaRect(hull)
+        (x, y), (width, height), angle = rect
+
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
+
+        #gets a cropped frame of just what's contained within the rotated rectangle
+        cropped_hull = self.__cropImageFromRotatedRect(processed_frame, box, int(width), int(height))
+
+        #gets the mean RBG values of the frame
+        #this mean determines how "solid" the convex hull is
+        #if the mean is lower, it means the source data for the convex hull contains more gaps/empty space
+        #from testing, 100 seems like an adequate value
+
+        return cv2.mean(cropped_hull)[0]
+
+    def __isValidConvexHull(self, hull, processed_frame):
         #A valid hull must have between 3 and 10 edges
         if ((len(hull) >= 3 or len(hull) <= 10) and 
             (self.__getConvexHullArea(hull) > self.fminimum_hull_size or 
             (self.__getConvexHullArea(hull) * -1) > self.fminimum_hull_size)):
-                return self.__convexHullPointingUp(hull)
-
-                rect = cv2.minAreaRect(hull)
-                (x, y), (width, height), angle = rect
-
-                extreme_points = self.__getExtremePoints(hull)
-                
-                #Essentially the height, gets the average of the top and bottom points
-                top_bottom_distance = math.dist(extreme_points["bottom"], extreme_points["top"])
-
-                #Essentially the width, get the average of the left and right points
-                left_right_distance = math.dist(extreme_points["left"], extreme_points["right"]) 
-
-                #flip the rotated rectangle width and height
-                #IF the angle is less than 0 (OPENCV angle is always reports as a negative (not sure why))
-                #AND the width is greater than the height of the convex hull (calculated from the extreme points) 
-                if (angle < 0 or angle == 90) and (top_bottom_distance > left_right_distance):
-                    width_clone = width
-                    width = height
-                    height = width_clone
-                    
-                aspect_ratio = float(width) / height
-
-                box = cv2.boxPoints(rect)
-                box = np.int0(box)
-
-                #if greater than 1, then width is greater than height
-                #we expect cones to be standing upright, hence being taller than they are wide
-                #aspect ratio must be also greater than 0.15, which aids in removed irrelevant data
-
-                #TODO look for issues here onwards!!!
-                if (aspect_ratio <= 1) and (aspect_ratio >= 0.15):
-
-                    #gets the average of the left and right points
-                    left_right_avg = [
-                        (extreme_points["left"][0] + extreme_points["right"][0])/2, 
-                        (extreme_points["left"][1] + extreme_points["right"][1])/2]
-
-                    distance_from_left_right_avg = []
-                    distance_from_left_right_avg.append(math.dist(left_right_avg, extreme_points["top"]))
-                    distance_from_left_right_avg.append(math.dist(left_right_avg, extreme_points["bottom"]))
-
-                    #either the length from the top to the LR average 
-                    #or the length from the bottom to the LR average
-                    #must be less than 35% of the total height
-                    valid_ratio = list(filter(lambda x: x < top_bottom_distance * 0.5, distance_from_left_right_avg))
-
-                    #width and height are from rotated rectange above
-                    #area of the convex hull must be less than OR equal to 65% of the area fo the rotated rectangle
-                    if (len(valid_ratio) > 0) and (self.__getConvexHullArea(hull) <= (width * height) * 0.7):
-                        #gets a cropped frame of just what's contained within the rotated rectangle
-                        cropped_hull = self.__cropImageFromRotatedRect(ProcessedFrame, box, int(width), int(height))
-
-                        #gets the mean RBG values of the frame
-                        #this mean determines how "solid" the convex hull is
-                        #if the mean is lower, it means the source data for the convex hull contains more gaps/empty space
-                        #from testing, 100 seems like an adequate value
-                        if (cv2.mean(cropped_hull)[0] > self.fminimum_rotated_rect_mean_brightness):
-                            return True
-        
+                if self.__convexHullPointingUp(hull):
+                    return (self.__getHullMeanBrightness(hull, processed_frame) > self.fminimum_rotated_rect_mean_brightness)        
         return False
 
     def __renderValidConvexHulls(self, ProcessedFrame, ProcessedContours):
