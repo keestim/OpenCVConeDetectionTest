@@ -7,6 +7,9 @@ from time import sleep
 import copy
 
 class ConeDetector(threading.Thread):
+    __MIN_HULL_EDGES = 3
+    __MAX_HULL_EDGES = 10
+
     def __init__(self, video_thread, HSV_controller, frame_thread_Lock):
         threading.Thread.__init__(self)
         self.fvideo_thread = video_thread
@@ -16,18 +19,11 @@ class ConeDetector(threading.Thread):
         self.fprocessed_HSV_frame = None
 
         self.fdetected_cone_frame = None
-        self.fminimum_hull_size = 2000
+        self.fminimum_hull_size = 200
         self.fminimum_contour_size = 10
         self.fminimum_rotated_rect_mean_brightness = 100
 
         self.fframe_thread_Lock = frame_thread_Lock
-
-        self.fdilation_amt = 5
-        self.fdilation_itterations = 2
-
-        self.ferode_amt = 2
-
-        self.fblur_amt = 15
 
     def run(self):
         while True:
@@ -38,7 +34,8 @@ class ConeDetector(threading.Thread):
             try:
                 self.fframe_thread_Lock.acquire()
             finally:
-                self.fdetected_cone_frame = self.__renderValidConvexHulls(self.fprocessed_HSV_image, processed_contours)
+                self.fdetected_cone_frame = self.__renderValidConvexHulls(self.fprocessed_HSV_image, 
+                                                                            processed_contours)
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
 
@@ -81,33 +78,16 @@ class ConeDetector(threading.Thread):
     def getDetectedConeFrame(self):
         return self.fdetected_cone_frame
 
-    def __getConvexHulls(self, contours):
-        #https://docs.opencv.org/3.4/d7/d1d/tutorial_hull.html
-        hull_list = []
-        for i in range(len(contours)):
-            hull = cv2.convexHull(contours[i])
-            hull_list.append(hull)
-
-        return hull_list
-
     #https://stackoverflow.com/questions/6471023/how-to-calculate-convex-hull-area-using-opencv-functions
     def __getConvexHullArea(self, hull):
         area = 0
         for i in  range(len(hull) - 1):
             next_i = (i + 1) % (len(hull))
             dX   = hull[next_i][0][0] - hull[i][0][0]
-            avg_y = (hull[next_i][0][1] + hull[i][0][1])/2
+            avg_y = (hull[next_i][0][1] + hull[i][0][1]) / 2
             area += dX * avg_y;  # this is the integration step.
 
         return area
-
-    def __getExtremePoints(self, hull):
-        left_most = tuple(hull[hull[:, :, 0].argmin()][0])
-        right_most = tuple(hull[hull[:, :, 0].argmax()][0])
-        top_most = tuple(hull[hull[:, :, 1].argmin()][0])
-        bottom_most = tuple(hull[hull[:, :, 1].argmax()][0])
-
-        return {'left': left_most, 'right': right_most, 'top': top_most, 'bottom': bottom_most}
 
     def __generateContours(self, ProcessedFrame):
         #https://towardsdatascience.com/edges-and-contours-basics-with-opencv-66d3263fd6d1
@@ -126,31 +106,33 @@ class ConeDetector(threading.Thread):
 
         return processed_contours
 
+    #https://github.com/mustafaezer/traffic-cone-detection/blob/master/main.py
     def __convexHullPointingUp(self, ch):
-        pointsAboveCenter, poinstBelowCenter = [], []
+        points_above_center = []
+        points_below_center = []
 
-        x, y, w, h = cv2.boundingRect(ch)
-        aspectRatio = w / h
+        x, y, width, height = cv2.boundingRect(ch)
+        aspect_ratio = width / height
 
-        if aspectRatio < 0.8:
-            verticalCenter = y + h / 2
+        if 0.15 <= aspect_ratio <= 0.8:
+            vertical_center = y + (height / 2)
 
             for point in ch:
-                if point[0][1] < verticalCenter:
-                    pointsAboveCenter.append(point)
-                elif point[0][1] >= verticalCenter:
-                    poinstBelowCenter.append(point)
+                if point[0][1] < vertical_center:
+                    points_above_center.append(point)
+                elif point[0][1] >= vertical_center:
+                    points_below_center.append(point)
 
-            leftX = poinstBelowCenter[0][0][0]
-            rightX = poinstBelowCenter[0][0][0]
-            for point in poinstBelowCenter:
-                if point[0][0] < leftX:
-                    leftX = point[0][0]
-                if point[0][0] > rightX:
-                    rightX = point[0][0]
+            left_x = points_below_center[0][0][0]
+            right_x = points_below_center[0][0][0]
+            for point in points_below_center:
+                if point[0][0] < left_x:
+                    left_x = point[0][0]
+                if point[0][0] > right_x:
+                    right_x = point[0][0]
 
-            for point in pointsAboveCenter:
-                if (point[0][0] < leftX) or (point[0][0] > rightX):
+            for point in points_above_center:
+                if (point[0][0] < left_x) or (point[0][0] > right_x):
                     return False
         else:
             return False
@@ -171,30 +153,24 @@ class ConeDetector(threading.Thread):
         #this mean determines how "solid" the convex hull is
         #if the mean is lower, it means the source data for the convex hull contains more gaps/empty space
         #from testing, 100 seems like an adequate value
-
         return cv2.mean(cropped_hull)[0]
 
     def __isValidConvexHull(self, hull, processed_frame):
         #A valid hull must have between 3 and 10 edges
-        if ((len(hull) >= 3 or len(hull) <= 10) and 
+        if ((len(hull) >= self.__MIN_HULL_EDGES or len(hull) <= self.__MAX_HULL_EDGES) and 
             (self.__getConvexHullArea(hull) > self.fminimum_hull_size or 
             (self.__getConvexHullArea(hull) * -1) > self.fminimum_hull_size)):
                 if self.__convexHullPointingUp(hull):
+                    return True
                     return (self.__getHullMeanBrightness(hull, processed_frame) > self.fminimum_rotated_rect_mean_brightness)        
         return False
 
-    def __renderValidConvexHulls(self, ProcessedFrame, ProcessedContours):
-        #Although the array isn't current being used, this will be utilized later!
-        valid_hulls = []
-        t =  0
-        cones = 0
+    def __renderValidConvexHulls(self, processed_frame, ProcessedContours):
         for c in ProcessedContours:
             hull = cv2.convexHull(c)
             
-            if (self.__isValidConvexHull(hull, ProcessedFrame)):
-                valid_hulls.append(hull)       
+            if (self.__isValidConvexHull(hull, processed_frame)):
+                cv2.drawContours(processed_frame, [hull], 0, (255, 0, 255), 4)
 
-                cv2.drawContours(ProcessedFrame, [hull], 0, (255, 0, 255), 2)
-
-        return ProcessedFrame
+        return processed_frame
 
