@@ -12,6 +12,7 @@ class DetectedHullDataContainer:
     def __init__(self, input_hull):
         self.fhull = input_hull
         self.fmin_area_rect = None
+        self.fbounding_rect = None
         
         self.fx = 0
         self.fy = 0
@@ -24,14 +25,12 @@ class DetectedHullDataContainer:
 
     def getMinAreaRect(self):
         self.fmin_area_rect = cv2.minAreaRect(self.fhull)
-
-        # cv2.minAreaRect returns:
-        # [[x, y], [width, height], angle]
-        # initially, we assign this array of arrays to the rect variable
-        # then we split it up into it's individual components
-        (self.fx, self.fy), (self.fwidth, self.fheight), self.fangle = self.fmin_area_rect
-
         return self.fmin_area_rect
+    
+    def getBoundingRect(self):
+        self.fbounding_rect = cv2.boundingRect(self.fhull)
+        self.fx, self.fy, self.fwidth, self.fheight = self.fbounding_rect 
+        return self.fbounding_rect 
 
     def getX(self):
         return self.fx
@@ -82,6 +81,9 @@ class ConeDetector(threading.Thread):
                                                                             processed_contours)
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
+
+    def getValidHulls(self):
+        return self.fvalid_hulls
 
     def __getHSVThresholdFrame(self):
         return cv2.inRange(
@@ -151,18 +153,18 @@ class ConeDetector(threading.Thread):
         return processed_contours
 
     #https://github.com/mustafaezer/traffic-cone-detection/blob/master/main.py
-    def __convexHullPointingUp(self, convex_hull):
+    def __convexHullPointingUp(self, hull_data_obj):
         points_above_center = []
         points_below_center = []
 
-        x, y, width, height = cv2.boundingRect(convex_hull)
+        x, y, width, height = hull_data_obj.getBoundingRect()
 
         aspect_ratio = width / height
 
         if 0.15 <= aspect_ratio <= 0.8:
             vertical_center = y + (height / 2)
 
-            for point in convex_hull:
+            for point in hull_data_obj.getHull():
                 if point[0][1] < vertical_center:
                     points_above_center.append(point)
                 elif point[0][1] >= vertical_center:
@@ -206,7 +208,7 @@ class ConeDetector(threading.Thread):
             (len(hull_data_obj.getHull()) <= self.__MAX_HULL_EDGES)) and 
             (self.__getConvexHullArea(hull_data_obj.getHull()) > self.fminimum_hull_size or 
             (self.__getConvexHullArea(hull_data_obj.getHull()) * -1) > self.fminimum_hull_size)):
-                if self.__convexHullPointingUp(hull_data_obj.getHull()):
+                if self.__convexHullPointingUp(hull_data_obj):
                     return (self.__getHullMeanBrightness(hull_data_obj, processed_frame) > self.fminimum_rotated_rect_mean_brightness)        
         return False
 

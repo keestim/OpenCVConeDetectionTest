@@ -25,3 +25,5 @@ class ExternalImageReader(VideoSource, threading.Thread):
     def getDepth(self):
         return None
         
+    def swapImageSrc(self, file_location):
+        self.ffile_src = file_location

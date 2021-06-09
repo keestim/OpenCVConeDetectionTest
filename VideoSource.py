@@ -34,6 +34,13 @@ class VideoSource(ABC, metaclass = VideoMetaClass):
                 self.fframe_thread_Lock.release()
                 sleep(0.01)
 
+    def getFrameMetaData(self):
+        data_array = self.fRGB_frame.shape
+
+        return {"height": data_array[0], 
+                "width": data_array[1], 
+                "channels": data_array[2]}
+
     @abstractmethod
     #function to get RGB image
     def getVideo(self):

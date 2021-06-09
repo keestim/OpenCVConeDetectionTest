@@ -5,15 +5,30 @@ from ConeDetector import *
 from HSVController import *
 from time import sleep
 import PySimpleGUI as sg
+from enum import Enum
+
+from LabelImgFileWriter import *
+
+class GUIMode(Enum):
+    Viewing = 0
+    ImgAnnotation = 1
 
 class GUIInformation:
     __PREVIOUS_IMG_BTN_TXT = "Previous Image"
     __WRITE_XML_BTN_TXT = "Write XML"
     __NEXT_IMG_BTN_TXT = "Next Image"
 
-    def __init__(self, video_feed, generate_frame_lock, render_frame_lock):
+    def __init__(self, 
+                video_feed, 
+                generate_frame_lock, 
+                render_frame_lock, 
+                gui_mode = GUIMode.Viewing,
+                file_utils = None):
+
         self.fvideo_feed_thread = video_feed
         self.frender_frame_lock = render_frame_lock
+
+        self.fgui_mode = gui_mode
 
         self.fHSV_controller_thread = HSVController(video_feed)
         self.fHSV_controller_thread.start()
@@ -35,6 +50,8 @@ class GUIInformation:
 
         self.flayout = None
         self.fwindow = None
+
+        self.ffile_utils = file_utils
 
         self.__createUIElements()
 
@@ -90,20 +107,28 @@ class GUIInformation:
         '''
 
         # create the window and show it without the plot
-        self.flayout = [[sg.Image(filename='', key='image')], 
-                        [sg.Button(self.__PREVIOUS_IMG_BTN_TXT), 
-                        sg.Button(self.__WRITE_XML_BTN_TXT), 
-                        sg.Button(self.__NEXT_IMG_BTN_TXT)]]
+        self.flayout = [[sg.Image(filename='', key='image')]]
         
+        if (self.fgui_mode == GUIMode.ImgAnnotation):
+            self.flayout.append([sg.Button(self.__PREVIOUS_IMG_BTN_TXT), 
+                                sg.Button(self.__WRITE_XML_BTN_TXT), 
+                                sg.Button(self.__NEXT_IMG_BTN_TXT)])
+
         self.fwindow = sg.Window('Output Window', self.flayout)
     
     def __windowListener(self, event, values):
-        if (event == self.__PREVIOUS_IMG_BTN_TXT):
-            print(event)
-        elif (event == self.__NEXT_IMG_BTN_TXT):
-            print(event)
-        elif (event == self.__WRITE_XML_BTN_TXT):
-            print(event)
+        if (self.fgui_mode == GUIMode.ImgAnnotation):
+            if (event == self.__PREVIOUS_IMG_BTN_TXT):
+                self.fvideo_feed_thread.swapImageSrc(self.ffile_utils.getPrevFile())
+            elif (event == self.__NEXT_IMG_BTN_TXT):
+                self.fvideo_feed_thread.swapImageSrc(self.ffile_utils.getNextFile())
+            elif (event == self.__WRITE_XML_BTN_TXT):
+                print("File XML Starting")
+                print("For: " + str(self.ffile_utils.getCurrentFile()) + " | " + 
+                        str(self.fvideo_feed_thread.getFrameMetaData()))
+                exportFile(self.ffile_utils.getCurrentFile(), 
+                            self.fcone_detector_thread.getValidHulls(), 
+                            self.fvideo_feed_thread.getFrameMetaData())
 
     def renderWindowFrames(self):  
         while self.fwindow(timeout = 0.01)[0] is not None:
@@ -116,5 +141,3 @@ class GUIInformation:
 
             event, values = self.fwindow._ReadNonBlocking()
             self.__windowListener(event, values)
-
-        
