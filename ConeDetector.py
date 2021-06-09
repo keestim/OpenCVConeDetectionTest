@@ -6,6 +6,48 @@ import math
 from time import sleep
 import copy
 
+from numpy.lib.ufunclike import fix
+
+class DetectedHullDataContainer:
+    def __init__(self, input_hull):
+        self.fhull = input_hull
+        self.fmin_area_rect = None
+        
+        self.fx = 0
+        self.fy = 0
+        self.fwidth = 0
+        self.fheight = 0
+        self.fangle = 0
+
+    def getHull(self):
+        return self.fhull
+
+    def getMinAreaRect(self):
+        self.fmin_area_rect = cv2.minAreaRect(self.fhull)
+
+        # cv2.minAreaRect returns:
+        # [[x, y], [width, height], angle]
+        # initially, we assign this array of arrays to the rect variable
+        # then we split it up into it's individual components
+        (self.fx, self.fy), (self.fwidth, self.fheight), self.fangle = self.fmin_area_rect
+
+        return self.fmin_area_rect
+
+    def getX(self):
+        return self.fx
+
+    def getY(self):
+        return self.fy
+
+    def getWidth(self):
+        return int(self.fwidth)
+    
+    def getHeight(self):
+        return int(self.fheight)
+
+    def getAngle(self):
+        return float(self.fangle)
+
 class ConeDetector(threading.Thread):
     __MIN_HULL_EDGES = 3
     __MAX_HULL_EDGES = 10
@@ -17,13 +59,15 @@ class ConeDetector(threading.Thread):
 
         self.fraw_HSV_frame = None
         self.fprocessed_HSV_frame = None
-
         self.fdetected_cone_frame = None
+
         self.fminimum_hull_size = 200
         self.fminimum_contour_size = 10
         self.fminimum_rotated_rect_mean_brightness = 100
 
         self.fframe_thread_Lock = frame_thread_Lock
+
+        self.fvalid_hulls = []
 
     def run(self):
         while True:
@@ -112,6 +156,7 @@ class ConeDetector(threading.Thread):
         points_below_center = []
 
         x, y, width, height = cv2.boundingRect(convex_hull)
+
         aspect_ratio = width / height
 
         if 0.15 <= aspect_ratio <= 0.8:
@@ -139,20 +184,15 @@ class ConeDetector(threading.Thread):
 
         return True
 
-    def __getHullMeanBrightness(self, hull, processed_frame):
-        rect = cv2.minAreaRect(hull)
-            
-        # cv2.minAreaRect returns:
-        # [[x, y], [width, height], angle]
-        # initially, we assign this array of arrays to the rect variable
-        # then we split it up into it's individual components
-        (x, y), (width, height), angle = rect
-
-        box = cv2.boxPoints(rect)
+    def __getHullMeanBrightness(self, hull_data_obj, processed_frame):
+        box = cv2.boxPoints(hull_data_obj.getMinAreaRect())
         box = np.int0(box)
 
         #gets a cropped frame of just what's contained within the rotated rectangle
-        cropped_hull = self.__cropImageFromRotatedRect(processed_frame, box, int(width), int(height))
+        cropped_hull = self.__cropImageFromRotatedRect(processed_frame, 
+                                                        box, 
+                                                        hull_data_obj.getWidth(), 
+                                                        hull_data_obj.getHeight())
 
         #gets the mean RBG values of the frame
         #this mean determines how "solid" the convex hull is
@@ -160,21 +200,26 @@ class ConeDetector(threading.Thread):
         #from testing, 100 seems like an adequate value
         return cv2.mean(cropped_hull)[0]
 
-    def __isValidConvexHull(self, hull, processed_frame):
+    def __isValidConvexHull(self, hull_data_obj, processed_frame):
         #A valid hull must have between 3 and 10 edges
-        if ((len(hull) >= self.__MIN_HULL_EDGES or len(hull) <= self.__MAX_HULL_EDGES) and 
-            (self.__getConvexHullArea(hull) > self.fminimum_hull_size or 
-            (self.__getConvexHullArea(hull) * -1) > self.fminimum_hull_size)):
-                if self.__convexHullPointingUp(hull):
-                    return (self.__getHullMeanBrightness(hull, processed_frame) > self.fminimum_rotated_rect_mean_brightness)        
+        if (((len(hull_data_obj.getHull()) >= self.__MIN_HULL_EDGES) or 
+            (len(hull_data_obj.getHull()) <= self.__MAX_HULL_EDGES)) and 
+            (self.__getConvexHullArea(hull_data_obj.getHull()) > self.fminimum_hull_size or 
+            (self.__getConvexHullArea(hull_data_obj.getHull()) * -1) > self.fminimum_hull_size)):
+                if self.__convexHullPointingUp(hull_data_obj.getHull()):
+                    return (self.__getHullMeanBrightness(hull_data_obj, processed_frame) > self.fminimum_rotated_rect_mean_brightness)        
         return False
 
     def __renderValidConvexHulls(self, processed_frame, processed_contours):
-        for c in processed_contours:
-            hull = cv2.convexHull(c)
-            
-            if (self.__isValidConvexHull(hull, processed_frame)):
-                cv2.drawContours(processed_frame, [hull], 0, (255, 0, 255), 4)
+        temp_valid_hulls = []
 
+        for c in processed_contours:
+            hull_data_obj = DetectedHullDataContainer(cv2.convexHull(c))
+            
+            if (self.__isValidConvexHull(hull_data_obj, processed_frame)):
+                cv2.drawContours(processed_frame, [hull_data_obj.getHull()], 0, (255, 0, 255), 4)
+                temp_valid_hulls.append(hull_data_obj)
+        
+        self.fvalid_hulls = temp_valid_hulls
         return processed_frame
 
