@@ -1,6 +1,7 @@
 from abc import ABC, ABCMeta, abstractmethod
 import threading
 from time import sleep
+import cv2
 
 #see: https://docs.python.org/3/library/abc.html
 #https://stackoverflow.com/questions/28799089/python-abc-multiple-inheritance
@@ -13,6 +14,9 @@ class VideoSource(ABC, metaclass = VideoMetaClass):
     def __init__(self, frame_thread_lock):
         threading.Thread.__init__(self)
         self.fRGB_frame = self.getVideo()
+        
+        self.fHSV_frame = ~cv2.cvtColor(self.fRGB_frame, cv2.COLOR_RGB2HSV)
+
         self.fdepth_frame = self.getDepth()
         self.fframe_thread_Lock = frame_thread_lock
 
@@ -22,6 +26,9 @@ class VideoSource(ABC, metaclass = VideoMetaClass):
                 self.fframe_thread_Lock.acquire()
             finally:
                 self.fRGB_frame = self.getVideo()
+                
+                self.fHSV_frame = ~cv2.cvtColor(self.fRGB_frame, cv2.COLOR_RGB2HSV) 
+
                 self.fdepth_frame = self.getDepth()
 
                 self.fframe_thread_Lock.release()
@@ -42,3 +49,6 @@ class VideoSource(ABC, metaclass = VideoMetaClass):
 
     def getDepthFrame(self):
         return self.fdepth_frame
+
+    def getHSVFrame(self):
+        return self.fHSV_frame

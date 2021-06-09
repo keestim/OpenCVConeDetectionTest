@@ -27,6 +27,9 @@ class ExternalVideoReader(VideoSource, threading.Thread):
     def run(self):
         while self.fvideo_capture.isOpened():
             self.fRGB_frame = self.getVideo()
+
+            self.fHSV_frame = ~cv2.cvtColor(self.fRGB_frame, cv2.COLOR_RGB2HSV)
+
             self.fdepth_frame = self.getDepth()
 
     #function to get RGB image from external video file
@@ -38,9 +41,7 @@ class ExternalVideoReader(VideoSource, threading.Thread):
             self.flast_frame_time = time.time()
 
             if success:
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
                 self.fframe_counter += 1
-
                 return frame
             else:
                 print("Can't receive frame (stream end?).")   
