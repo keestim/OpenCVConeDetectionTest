@@ -25,6 +25,7 @@ if __name__ == "__main__":
         sleep(0.5)
         
         GUI_info = GUIInformation(video_thread, generate_frame_lock, render_frame_lock)
+        sleep(1)
 
         while True:     
             GUI_info.renderWindowFrames()

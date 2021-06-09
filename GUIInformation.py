@@ -4,8 +4,13 @@
 from ConeDetector import *
 from HSVController import *
 from time import sleep
+import PySimpleGUI as sg
 
 class GUIInformation:
+    __PREVIOUS_IMG_BTN_TXT = "Previous Image"
+    __WRITE_XML_BTN_TXT = "Write XML"
+    __NEXT_IMG_BTN_TXT = "Next Image"
+
     def __init__(self, video_feed, generate_frame_lock, render_frame_lock):
         self.fvideo_feed_thread = video_feed
         self.frender_frame_lock = render_frame_lock
@@ -28,8 +33,8 @@ class GUIInformation:
 
         self.fhigh_V_name = 'High V'
 
-        self.fplay_video_button = "Play Video"
-        self.fpause_video_button = "Pause Video"
+        self.flayout = None
+        self.fwindow = None
 
         self.__createUIElements()
 
@@ -68,10 +73,7 @@ class GUIInformation:
         return cv2.resize(image, dim, interpolation = inter)
 
     def __createUIElements(self):
-        # Windows are created
-        cv2.namedWindow(self.fwindow_frame_output)
-        cv2.namedWindow(self.fwindow_UI_components)
-
+        '''
         cv2.createTrackbar(
             self.flow_V_name, 
             self.fwindow_UI_components, 
@@ -85,11 +87,34 @@ class GUIInformation:
             self.fHSV_controller_thread.getHSVValueContainer().high_V, 
             MAX_VALUE, 
             self.__onHighVThreshTrackbar)
+        '''
+
+        # create the window and show it without the plot
+        self.flayout = [[sg.Image(filename='', key='image')], 
+                        [sg.Button(self.__PREVIOUS_IMG_BTN_TXT), 
+                        sg.Button(self.__WRITE_XML_BTN_TXT), 
+                        sg.Button(self.__NEXT_IMG_BTN_TXT)]]
+        
+        self.fwindow = sg.Window('Output Window', self.flayout)
+    
+    def __windowListener(self, event, values):
+        if (event == self.__PREVIOUS_IMG_BTN_TXT):
+            print(event)
+        elif (event == self.__NEXT_IMG_BTN_TXT):
+            print(event)
+        elif (event == self.__WRITE_XML_BTN_TXT):
+            print(event)
 
     def renderWindowFrames(self):  
-        stacked_frames = np.concatenate((self.fvideo_feed_thread.getRGBFrame(), 
-                                        self.fcone_detector_thread.getDetectedConeFrame()),
-                                        axis = 0)
+        while self.fwindow(timeout = 0.01)[0] is not None:
+            stacked_frames = np.concatenate((self.fvideo_feed_thread.getRGBFrame(), 
+                                            self.fcone_detector_thread.getDetectedConeFrame()),
+                                            axis = 0)
 
-        stacked_frames = self.__resizeWithAspectRatio(stacked_frames, width = 720)
-        cv2.imshow(self.fwindow_frame_output, stacked_frames)
+            stacked_frames = self.__resizeWithAspectRatio(stacked_frames, width = 720)
+            self.fwindow['image'](data=cv2.imencode('.png', stacked_frames)[1].tobytes())
+
+            event, values = self.fwindow._ReadNonBlocking()
+            self.__windowListener(event, values)
+
+        
